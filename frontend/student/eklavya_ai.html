@@ -4,16 +4,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Student Dashboard - GRAVITY AI</title>
+  <title>Gravity.AI — Intelligent AI Tutor</title>
   <link rel="icon" type="image/png" href="../assets/img/logo.png?v=3.0">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Work+Sans:wght@400;500;600;700;800&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=Work+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="../css/global.css?v=3.0">
-  <link rel="stylesheet" href="../css/eklavya_ai.css?v=3.0" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" />
+  <link rel="stylesheet" href="../css/eklavya_ai.css?v=3.1" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
   <!-- KaTeX for modern LaTeX mathematical formula rendering -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous">
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
@@ -23,6 +23,7 @@
 
 <body>
   <div class="container">
+    <!-- Platform Navigation Sidebar -->
     <aside class="sidebar" role="navigation" aria-label="Sidebar menu">
       <div class="logo">
         <img src="../assets/img/logo.png?v=2026.1" alt="EklavyaX Logo" width="36" height="36"
@@ -42,8 +43,8 @@
       </nav>
 
       <div class="profile" role="button" aria-pressed="false" aria-label="Edit Profile">
-        <img id="userAvatarImg" src="../assets/img/student_boy.jpg" alt="Student's profile icon" width="42" height="42"
-          style="width: 42px; height: 42px; object-fit: cover; border-radius: 50%;" />
+        <img id="userAvatarImg" src="../assets/img/student_boy.jpg" alt="Student's profile icon" width="40" height="40"
+          style="width: 40px; height: 40px; object-fit: cover; border-radius: 50%;" />
         <div class="profile-info">
           <strong id="profileName">Sayan Mondal</strong>
           <span id="profileAction">Log out</span>
@@ -51,89 +52,135 @@
       </div>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Main Chat Workspace -->
     <main class="content">
-      <section class="ai-hero-card">
-        <div>
-          <h1>Gravity.AI — Intelligent AI Tutor</h1>
-          <p>Get concept explanations in your language, guided by friendly step-by-step analogies.</p>
+      <!-- Top Status & Navigation Bar -->
+      <header class="ai-top-bar">
+        <div class="ai-top-left">
+          <div class="ai-model-pill">
+            <img src="../assets/img/gravity_ai_logo.png" alt="Gravity AI" class="top-gravity-logo-icon">
+            <span>Gravity.AI</span>
+            <span class="status-dot"></span>
+          </div>
         </div>
-        <div class="ai-balance-badge">
-          <span>🪙 Balance:</span>
-          <span id="walletCoins">--</span>
-          <span>EduCoins</span>
+
+        <div class="ai-top-actions">
+          <div class="ai-balance-chip">
+            <span>🪙 Balance:</span>
+            <strong id="walletCoins">--</strong>
+            <span>EduCoins</span>
+          </div>
+          <button id="newChatTopBtn" class="new-chat-btn" title="Start a fresh chat">
+            <i class="fas fa-plus"></i>
+            <span>New Chat</span>
+          </button>
+          <button id="toggleHistoryBtn" class="history-toggle-btn" title="Toggle Recent Sessions">
+            <i class="fas fa-history"></i>
+            <span>History</span>
+          </button>
         </div>
-      </section>
+      </header>
 
-      <div class="ai-grid">
-        <!-- AI Ask Card -->
-        <section class="ai-card">
-          <h3><i class="fas fa-magic" style="color:#f4ae25;"></i> Ask for an Explanation</h3>
-          <p style="font-size:0.84rem; color:#6d756b; margin-bottom:14px;">
-            Highlight text or type any concept you want simplified. Costs 10 EduCoins (earn back 5 coins if you
-            understand it!).
-          </p>
+      <!-- Main Chat Body -->
+      <div class="chat-layout">
+        <div class="chat-workspace">
+          <!-- Chat Messages Container -->
+          <div id="chatMessages" class="chat-messages-container">
+            <!-- Welcome / Empty Hero State -->
+            <div id="welcomeState" class="chat-welcome-state">
+              <div class="welcome-gravity-logo-wrap">
+                <img src="../assets/img/gravity_ai_logo.png" alt="Gravity AI Logo" class="welcome-gravity-logo">
+                <div class="gravity-pulse-ring"></div>
+              </div>
+              <h1 class="welcome-title">What would you like to master today?</h1>
+              <p class="welcome-subtitle">
+                Ask any STEM concept, math formula, or science question. Get instant, step-by-step intuitive analogies.
+              </p>
 
-          <form id="explainForm">
-            <div class="ai-input-group">
-              <label for="explainText">Concept / Question / Problem</label>
-              <textarea id="explainText" rows="4"
-                placeholder="e.g. Explain Newton's Third Law with a real-life cricket example or quadratic equation formula..."
-                required></textarea>
+              <!-- Quick Suggestion Chips -->
+              <div class="suggestions-grid">
+                <div class="suggestion-card"
+                  onclick="usePromptSuggestion('Explain De Morgan\'s Laws in set theory with simple formula and daily life example')">
+                  <div class="suggestion-header">
+                    <i class="fas fa-square-root-alt"></i> De Morgan's Laws
+                  </div>
+                  <div class="suggestion-prompt">Negation of union & intersection with clear formulas and intuitive
+                    analogy</div>
+                </div>
+
+                <div class="suggestion-card"
+                  onclick="usePromptSuggestion('Explain Newton\'s Third Law of Motion with a cricket bat and ball example')">
+                  <div class="suggestion-header">
+                    <i class="fas fa-rocket"></i> Newton's 3rd Law
+                  </div>
+                  <div class="suggestion-prompt">Action-reaction force pairs explained using real-world cricket
+                    scenarios</div>
+                </div>
+
+                <div class="suggestion-card"
+                  onclick="usePromptSuggestion('What is the difference between interpreted and dynamically typed programming languages?')">
+                  <div class="suggestion-header">
+                    <i class="fas fa-code"></i> Interpreted vs Compiled
+                  </div>
+                  <div class="suggestion-prompt">Execution speed, type checking at runtime, and runtime memory breakdown
+                  </div>
+                </div>
+
+                <div class="suggestion-card"
+                  onclick="usePromptSuggestion('State Ohm\'s Law and derive the formula using water pipe circuit analogy')">
+                  <div class="suggestion-header">
+                    <i class="fas fa-bolt"></i> Ohm's Law & Circuits
+                  </div>
+                  <div class="suggestion-prompt">Voltage, Current, and Resistance $V = IR$ with intuitive visual analogy
+                  </div>
+                </div>
+              </div>
             </div>
+            <!-- Dynamic user & AI messages will be injected here -->
+          </div>
 
-            <div class="ai-input-group">
-              <label for="explainLang">Target Language</label>
-              <select id="explainLang">
-                <option value="English" selected>English</option>
-                <option value="Hindi">Hindi (हिंदी)</option>
-                <option value="Tamil">Tamil (தமிழ்)</option>
-              </select>
+          <!-- Floating Bottom Input Bar (ChatGPT & Gemini Style) -->
+          <div class="chat-input-wrapper">
+            <div class="chat-input-box">
+              <div class="chat-input-main">
+                <textarea id="chatInput" class="chat-textarea" rows="1"
+                  placeholder="Ask Gravity anything (e.g. 'Derive kinetic energy formula', 'Explain photosynthesis')..."
+                  autofocus></textarea>
+
+                <div class="chat-input-controls">
+                  <!-- Language Selector Pill -->
+                  <select id="chatLang" class="lang-select-pill" title="Target explanation language">
+                    <option value="English" selected>🌐 English</option>
+                    <option value="Hindi">🇮🇳 Hindi (हिंदी)</option>
+                    <option value="Tamil">🇮🇳 Tamil (தமிழ்)</option>
+                  </select>
+
+                  <!-- Send Button -->
+                  <button id="sendBtn" class="chat-send-btn" title="Send (Enter)">
+                    <i class="fas fa-arrow-up"></i>
+                  </button>
+                </div>
+              </div>
             </div>
+            <div class="chat-input-footer-hint">
+              <span>Gravity.AI costs 10 EduCoins &bull; Earn back 5 coins on understanding &bull; Powered by Ultra-Fast
+                Groq Cloud</span>
+            </div>
+          </div>
+        </div>
 
-            <button type="submit" id="explainBtn" class="ai-btn-submit">
-              <i class="fas fa-sparkles"></i> Explain with Gravity AI (🪙 10)
+        <!-- Right Side Drawer: Recent Sessions -->
+        <aside id="historyDrawer" class="history-drawer">
+          <div class="history-drawer-header">
+            <h3><i class="fas fa-history"></i> Recent Sessions</h3>
+            <button id="clearHistoryBtn" class="history-clear-btn" title="Clear all past explanations">
+              <i class="fas fa-trash-alt"></i> Clear
             </button>
-          </form>
-
-          <div id="aiResponseBox" class="ai-response-box">
-            <h4><i class="fas fa-lightbulb"></i> Explanation</h4>
-            <div id="aiResponseContent" class="ai-response-content"></div>
-            <div style="margin-top:14px; display:flex; gap:10px; align-items:center;">
-              <button id="goodStudentBtn" class="ai-refund-btn">
-                <i class="fas fa-check-circle"></i> I Understood! (Claim 5 Coin Refund)
-              </button>
-              <span id="refundMsg" style="font-size:0.8rem; color:#aebcaf;"></span>
-            </div>
           </div>
-        </section>
-
-        <!-- History Card -->
-        <section class="ai-card">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-            <h3 style="margin:0;"><i class="fas fa-history" style="color:#4059a5;"></i> Recent Explanations</h3>
-            <button id="clearHistoryBtn" type="button" style="
-              background: rgba(248,113,113,0.15);
-              color: #f87171;
-              border: 1px solid rgba(248,113,113,0.3);
-              padding: 5px 14px;
-              border-radius: 8px;
-              font-size: 0.78rem;
-              font-weight: 600;
-              cursor: pointer;
-              transition: all 0.2s ease;
-              display: flex;
-              align-items: center;
-              gap: 5px;
-            " onmouseover="this.style.background='rgba(248,113,113,0.3)'"
-              onmouseout="this.style.background='rgba(248,113,113,0.15)'">
-              <i class="fas fa-trash-alt"></i> Clear All
-            </button>
+          <div id="historyList" class="history-sidebar-content">
+            <p style="color:#70786d; font-size:0.82rem; padding:8px;">Loading past sessions...</p>
           </div>
-          <div id="historyList" class="history-list">
-            <p style="color:#70786d; font-size:0.85rem;">Loading past sessions...</p>
-          </div>
-        </section>
+        </aside>
       </div>
     </main>
   </div>
@@ -141,48 +188,115 @@
   <script src="../js/api.js"></script>
   <script src="../js/page_init.js"></script>
   <script>
-    let currentLogId = null;
+    // ── Global State ─────────────────────────────────────────────────────────────
+    let isGenerating = false;
+    let chatHistory = []; // list of { id, role, content, meta, logId, refunded }
 
+    // ── Elements ─────────────────────────────────────────────────────────────────
+    const chatMessagesEl = document.getElementById("chatMessages");
+    const welcomeStateEl = document.getElementById("welcomeState");
+    const chatInputEl = document.getElementById("chatInput");
+    const chatLangEl = document.getElementById("chatLang");
+    const sendBtnEl = document.getElementById("sendBtn");
+    const walletCoinsEl = document.getElementById("walletCoins");
+    const historyListEl = document.getElementById("historyList");
+    const historyDrawerEl = document.getElementById("historyDrawer");
+    const toggleHistoryBtnEl = document.getElementById("toggleHistoryBtn");
+    const newChatTopBtnEl = document.getElementById("newChatTopBtn");
+    const clearHistoryBtnEl = document.getElementById("clearHistoryBtn");
+
+    // ── Auto-resize Textarea ──────────────────────────────────────────────────────
+    function autoResizeTextarea() {
+      chatInputEl.style.height = "auto";
+      const newHeight = Math.min(chatInputEl.scrollHeight, 150);
+      chatInputEl.style.height = Math.max(newHeight, 24) + "px";
+    }
+
+    chatInputEl.addEventListener("input", autoResizeTextarea);
+
+    // Enter to Send, Shift+Enter for new line
+    chatInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    });
+
+    sendBtnEl.addEventListener("click", () => {
+      handleSendMessage();
+    });
+
+    // Suggestion chip clicked
+    function usePromptSuggestion(promptText) {
+      chatInputEl.value = promptText;
+      autoResizeTextarea();
+      chatInputEl.focus();
+      handleSendMessage();
+    }
+
+    // ── Load Wallet Balance ───────────────────────────────────────────────────────
     async function loadWallet() {
       try {
         const wallet = await EklavyaXAPI.wallet();
-        const el = document.getElementById("walletCoins");
-        if (el) el.textContent = wallet.balance.toLocaleString();
+        if (walletCoinsEl) walletCoinsEl.textContent = wallet.balance.toLocaleString();
       } catch (err) {
         console.warn("Wallet fetch failed:", err);
       }
     }
 
+    // ── Load History Sidebar ──────────────────────────────────────────────────────
     async function loadHistory() {
-      const container = document.getElementById("historyList");
       try {
         const history = await EklavyaXAPI.tutorHistory();
         if (!history || history.length === 0) {
-          container.innerHTML = '<p style="color:#70786d; font-size:0.85rem;">No past explanations yet. Try asking your first question!</p>';
+          historyListEl.innerHTML = '<p style="color:#70786d; font-size:0.82rem; padding:8px;">No past sessions yet.</p>';
           return;
         }
-        container.innerHTML = history.map(item => `
-          <div class="history-item" onclick="showHistoryItem(${JSON.stringify(item.highlighted_text).replace(/"/g, '&quot;')})">
-            <div class="history-item-title">${item.highlighted_text}</div>
-            <div class="history-item-meta">
-              <span>🌐 ${item.target_language}</span>
-              <span>🪙 ${item.cost_coins} coins ${item.refunded ? '(Refunded ✅)' : ''}</span>
+        historyListEl.innerHTML = history.map(item => `
+          <div class="history-card-item" onclick="loadHistoryToChat(${JSON.stringify(item.highlighted_text).replace(/"/g, '&quot;')}, ${JSON.stringify(item.target_language).replace(/"/g, '&quot;')})">
+            <div class="history-card-title">${escapeHtml(item.highlighted_text)}</div>
+            <div class="history-card-meta">
+              <span>🌐 ${escapeHtml(item.target_language)}</span>
+              <span>${item.refunded ? '✅ Refunded' : '🪙 ' + item.cost_coins}</span>
             </div>
           </div>
         `).join("");
       } catch (err) {
-        container.innerHTML = '<p style="color:#70786d; font-size:0.85rem;">Could not load history.</p>';
+        historyListEl.innerHTML = '<p style="color:#70786d; font-size:0.82rem; padding:8px;">Could not load history.</p>';
       }
+    }
+
+    function loadHistoryToChat(question, lang) {
+      chatInputEl.value = question;
+      if (lang && chatLangEl) chatLangEl.value = lang;
+      autoResizeTextarea();
+      chatInputEl.focus();
+      handleSendMessage();
+    }
+
+    // ── Format Markdown & LaTeX ───────────────────────────────────────────────────
+    function escapeHtml(text) {
+      if (!text) return "";
+      return text
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
     }
 
     function formatMarkdown(text) {
       if (!text) return "";
 
-      // 1. Extract and protect LaTeX math blocks from markdown processing
-      const mathBlocks = [];
-      let processed = text;
+      // 1. Extract and protect code blocks
+      const codeBlocks = [];
+      let processed = text.replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (match, lang, code) => {
+        codeBlocks.push({ lang: lang || "code", code });
+        return `%%CODE_BLOCK_${codeBlocks.length - 1}%%`;
+      });
 
-      // Protect display math: $$...$$ and \[...\]
+      // 2. Extract and protect LaTeX math blocks
+      const mathBlocks = [];
+
+      // Display math: $$...$$ and \[...\]
       processed = processed.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
         mathBlocks.push(match);
         return `%%MATH_BLOCK_${mathBlocks.length - 1}%%`;
@@ -192,7 +306,7 @@
         return `%%MATH_BLOCK_${mathBlocks.length - 1}%%`;
       });
 
-      // Protect inline math: $...$ and \(...\)
+      // Inline math: $...$ and \(...\)
       processed = processed.replace(/\$([^\$\n]+?)\$/g, (match) => {
         mathBlocks.push(match);
         return `%%MATH_BLOCK_${mathBlocks.length - 1}%%`;
@@ -202,40 +316,60 @@
         return `%%MATH_BLOCK_${mathBlocks.length - 1}%%`;
       });
 
-      // 2. Standard HTML escaping (only on non-math text now)
+      // 3. Escape HTML
       let html = processed
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 
-      // 3. Markdown formatting
-      // Bold **text**
-      html = html.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#ffffff;">$1</strong>');
+      // 4. Markdown standard tags
+      // Bold
+      html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      // Inline code
+      html = html.replace(/`([^`\n]+?)`/g, '<code style="background:rgba(255,255,255,0.1); padding:2px 6px; border-radius:6px; font-family:var(--font-code); color:#7dd3fc;">$1</code>');
       // Headings
-      html = html.replace(/^### (.*$)/gim, '<h5 style="margin:14px 0 6px 0; color:#eeb43e; font-size:1rem;">$1</h5>');
-      html = html.replace(/^## (.*$)/gim, '<h4 style="margin:16px 0 8px 0; color:#eeb43e; font-size:1.1rem;">$1</h4>');
-      html = html.replace(/^# (.*$)/gim, '<h3 style="margin:18px 0 10px 0; color:#eeb43e; font-size:1.2rem;">$1</h3>');
-      // Bullet points
-      html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<div style="margin-left:14px; margin-bottom:4px;">• $1</div>');
+      html = html.replace(/^### (.*$)/gim, '<h5>$1</h5>');
+      html = html.replace(/^## (.*$)/gim, '<h4>$1</h4>');
+      html = html.replace(/^# (.*$)/gim, '<h3>$1</h3>');
+      // Horizontal rules
+      html = html.replace(/^---$/gim, '<hr style="border:none; border-top:1px dashed rgba(245,240,226,0.15); margin:14px 0;"/>');
       // Numbered lists
-      html = html.replace(/^\s*(\d+\.)\s+(.*$)/gim, '<div style="margin-top:10px; margin-bottom:4px;"><strong style="color:#eeb43e;">$1</strong> $2</div>');
+      html = html.replace(/^\s*(\d+\.)\s+(.*$)/gim, '<div class="list-item-numbered"><span class="num-badge">$1</span>$2</div>');
+      // Bullet points
+      html = html.replace(/^\s*[\-\*]\s+(.*$)/gim, '<div class="list-item-bullet"><i class="fas fa-circle list-bullet-icon"></i><div>$1</div></div>');
       // Line breaks
-      html = html.replace(/\n\n/g, '<div style="height:10px;"></div>').replace(/\n/g, '<br/>');
+      html = html.replace(/\n\n/g, '<div style="height:8px;"></div>').replace(/\n/g, '<br/>');
 
-      // 4. Restore math blocks (unescaped, so KaTeX can parse them)
+      // 5. Restore Math Blocks
       for (let i = 0; i < mathBlocks.length; i++) {
         html = html.replace(`%%MATH_BLOCK_${i}%%`, mathBlocks[i]);
+      }
+
+      // 6. Restore Code Blocks
+      for (let i = 0; i < codeBlocks.length; i++) {
+        const item = codeBlocks[i];
+        const blockHtml = `
+          <div class="ai-code-block">
+            <div class="code-header">
+              <span>${escapeHtml(item.lang)}</span>
+              <button class="code-copy-btn" onclick="copyCode(this)">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+            </div>
+            <pre><code>${escapeHtml(item.code)}</code></pre>
+          </div>
+        `;
+        html = html.replace(`%%CODE_BLOCK_${i}%%`, blockHtml);
       }
 
       return html;
     }
 
-    function renderExplanation(element, markdownText) {
-      element.innerHTML = formatMarkdown(markdownText);
+    function renderMath(containerEl) {
       function applyKatex() {
         if (typeof renderMathInElement === "function") {
           try {
-            renderMathInElement(element, {
+            renderMathInElement(containerEl, {
               delimiters: [
                 { left: '$$', right: '$$', display: true },
                 { left: '\\[', right: '\\]', display: true },
@@ -250,90 +384,276 @@
           }
         }
       }
+
       if (typeof renderMathInElement === "function") {
         applyKatex();
       } else {
-        // If KaTeX script is still loading in background
-        const checkKatex = setInterval(() => {
+        const timer = setInterval(() => {
           if (typeof renderMathInElement === "function") {
-            clearInterval(checkKatex);
+            clearInterval(timer);
             applyKatex();
           }
         }, 100);
-        setTimeout(() => clearInterval(checkKatex), 3000);
+        setTimeout(() => clearInterval(timer), 3000);
       }
     }
 
-    function showHistoryItem(text) {
-      document.getElementById("explainText").value = text;
+    // ── Chat Actions ─────────────────────────────────────────────────────────────
+    function copyCode(btn) {
+      const code = btn.closest('.ai-code-block').querySelector('code').innerText;
+      navigator.clipboard.writeText(code).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+      });
     }
 
-    document.getElementById("explainForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const text = document.getElementById("explainText").value.trim();
-      const lang = document.getElementById("explainLang").value;
-      const btn = document.getElementById("explainBtn");
-      const box = document.getElementById("aiResponseBox");
-      const content = document.getElementById("aiResponseContent");
-      const refundMsg = document.getElementById("refundMsg");
+    function copyAnswer(btn) {
+      const bubble = btn.closest('.msg-body-wrapper').querySelector('.ai-text-content');
+      const cleanText = bubble.innerText;
+      navigator.clipboard.writeText(cleanText).then(() => {
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        setTimeout(() => { btn.innerHTML = orig; }, 2000);
+      });
+    }
 
-      if (!text) return;
+    function speakExplanation(btn) {
+      const bubble = btn.closest('.msg-body-wrapper').querySelector('.ai-text-content');
+      const textToSpeak = bubble.innerText.replace(/[\$]/g, '');
 
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop any ongoing speech
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+
+        btn.innerHTML = '<i class="fas fa-volume-up"></i> Speaking...';
+        utterance.onend = () => {
+          btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+        };
+        utterance.onerror = () => {
+          btn.innerHTML = '<i class="fas fa-volume-up"></i> Listen';
+        };
+        window.speechSynthesis.speak(utterance);
+      } else {
+        alert("Speech synthesis is not supported on this browser.");
+      }
+    }
+
+    async function claimRefund(btn, logId) {
+      if (!logId) return;
       btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Explanation...';
-      refundMsg.textContent = "";
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Claiming...';
+
+      try {
+        const res = await EklavyaXAPI.tutorFeedback(logId, true);
+        btn.className = "action-chip-btn refunded";
+        btn.innerHTML = `<i class="fas fa-check-circle"></i> ${res.message || '5 Coins Refunded!'}`;
+        loadWallet();
+        loadHistory();
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-exclamation-triangle"></i> ' + (err.message || 'Refund failed');
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fas fa-check-circle"></i> I Understood! (Claim 5 Coins)';
+        }, 3000);
+      }
+    }
+
+    // ── Send Message Workflow ────────────────────────────────────────────────────
+    async function handleSendMessage() {
+      const text = chatInputEl.value.trim();
+      const lang = chatLangEl.value;
+
+      if (!text || isGenerating) return;
+
+      // Hide welcome state
+      if (welcomeStateEl) welcomeStateEl.style.display = "none";
+
+      // Append User message
+      appendUserMessage(text, lang);
+
+      // Clear and reset textarea
+      chatInputEl.value = "";
+      autoResizeTextarea();
+
+      // Show Gemini thinking indicator
+      const typingRow = appendTypingIndicator();
+      scrollToBottom();
+
+      isGenerating = true;
+      sendBtnEl.disabled = true;
+      sendBtnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
       try {
         const res = await EklavyaXAPI.tutorExplain(text, lang);
-        currentLogId = res.explanation_log_id;
-        renderExplanation(content, res.explanation);
-        box.classList.add("visible");
+
+        // Remove typing indicator
+        if (typingRow && typingRow.parentNode) {
+          typingRow.parentNode.removeChild(typingRow);
+        }
+
+        // Append AI message
+        appendAIMessage(res.explanation, res.explanation_log_id, lang);
+
         loadWallet();
         loadHistory();
       } catch (err) {
-        alert(err.message || "Failed to generate explanation. Check your coin balance or API settings.");
+        if (typingRow && typingRow.parentNode) {
+          typingRow.parentNode.removeChild(typingRow);
+        }
+        appendErrorMessage(err.message || "Failed to generate explanation. Please check your balance or try again.");
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-sparkles"></i> Explain with Gravity AI (🪙 10)';
+        isGenerating = false;
+        sendBtnEl.disabled = false;
+        sendBtnEl.innerHTML = '<i class="fas fa-arrow-up"></i>';
+        chatInputEl.focus();
+        scrollToBottom();
       }
+    }
+
+    function appendUserMessage(text, lang) {
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const row = document.createElement("div");
+      row.className = "chat-message-row user";
+      row.innerHTML = `
+        <div class="msg-avatar">
+          <i class="fas fa-user-graduate"></i>
+        </div>
+        <div class="msg-body-wrapper">
+          <div class="msg-bubble">
+            ${escapeHtml(text)}
+          </div>
+          <div class="msg-meta">
+            <span>🌐 ${escapeHtml(lang)}</span>
+            <span>&bull;</span>
+            <span>${timeStr}</span>
+          </div>
+        </div>
+      `;
+      chatMessagesEl.appendChild(row);
+      scrollToBottom();
+    }
+
+    function appendAIMessage(explanationText, logId, lang) {
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const row = document.createElement("div");
+      row.className = "chat-message-row ai";
+
+      const formattedContent = formatMarkdown(explanationText);
+
+      row.innerHTML = `
+        <div class="msg-avatar ai">
+          <img src="../assets/img/gravity_ai_logo.png" alt="Gravity AI" class="chat-gravity-logo-icon">
+        </div>
+        <div class="msg-body-wrapper">
+          <div class="msg-bubble">
+            <div class="ai-text-content">${formattedContent}</div>
+            
+            <!-- Interactive Action Bar -->
+            <div class="msg-actions-toolbar">
+              <button class="action-chip-btn refund-btn" onclick="claimRefund(this, ${logId})">
+                <i class="fas fa-check-circle"></i> I Understood! (Claim 5 Coins)
+              </button>
+              <button class="action-chip-btn" onclick="copyAnswer(this)" title="Copy text to clipboard">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+              <button class="action-chip-btn" onclick="speakExplanation(this)" title="Listen to explanation">
+                <i class="fas fa-volume-up"></i> Listen
+              </button>
+            </div>
+          </div>
+          <div class="msg-meta">
+            <span>Gravity.AI</span>
+            <span>&bull;</span>
+            <span>${timeStr}</span>
+          </div>
+        </div>
+      `;
+
+      chatMessagesEl.appendChild(row);
+      renderMath(row);
+      scrollToBottom();
+    }
+
+    function appendTypingIndicator() {
+      const row = document.createElement("div");
+      row.className = "typing-indicator-row";
+      row.innerHTML = `
+        <div class="msg-avatar ai">
+          <img src="../assets/img/gravity_ai_logo.png" alt="Gravity AI" class="chat-gravity-logo-icon">
+        </div>
+        <div class="typing-bubble">
+          <div class="gemini-wave-bar">
+            <div class="wave-dot"></div>
+            <div class="wave-dot"></div>
+            <div class="wave-dot"></div>
+          </div>
+          <span class="typing-text">Gravity AI Running...</span>
+        </div>
+      `;
+      chatMessagesEl.appendChild(row);
+      return row;
+    }
+
+    function appendErrorMessage(errText) {
+      const row = document.createElement("div");
+      row.className = "chat-message-row ai";
+      row.innerHTML = `
+        <div class="msg-avatar" style="background:#ef4444; color:#ffffff;">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="msg-body-wrapper">
+          <div class="msg-bubble" style="border-color:rgba(239,68,68,0.4); background:rgba(40,15,15,0.9);">
+            <strong style="color:#f87171;">Error:</strong> ${escapeHtml(errText)}
+          </div>
+        </div>
+      `;
+      chatMessagesEl.appendChild(row);
+      scrollToBottom();
+    }
+
+    function scrollToBottom() {
+      chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+    }
+
+    // ── New Chat / Reset ─────────────────────────────────────────────────────────
+    newChatTopBtnEl.addEventListener("click", () => {
+      // Clear message thread
+      const messages = chatMessagesEl.querySelectorAll(".chat-message-row, .typing-indicator-row");
+      messages.forEach(m => m.remove());
+      if (welcomeStateEl) welcomeStateEl.style.display = "flex";
+      chatInputEl.value = "";
+      autoResizeTextarea();
+      chatInputEl.focus();
     });
 
-    document.getElementById("goodStudentBtn").addEventListener("click", async () => {
-      if (!currentLogId) return;
-      const refundMsg = document.getElementById("refundMsg");
-      try {
-        const res = await EklavyaXAPI.tutorFeedback(currentLogId, true);
-        refundMsg.textContent = res.message;
-        refundMsg.style.color = "#4ade80";
-        loadWallet();
-        loadHistory();
-      } catch (err) {
-        refundMsg.textContent = err.message || "Refund failed.";
-        refundMsg.style.color = "#f87171";
-      }
+    // ── Toggle History Sidebar ────────────────────────────────────────────────────
+    toggleHistoryBtnEl.addEventListener("click", () => {
+      historyDrawerEl.classList.toggle("collapsed");
     });
 
-    // Page initialization
-    initPage("student", "student_login.html");
-    loadWallet();
-    loadHistory();
-
-    // Clear history button
-    document.getElementById("clearHistoryBtn").addEventListener("click", async () => {
-      if (!confirm("Clear all recent explanations? This cannot be undone.")) return;
-      const btn = document.getElementById("clearHistoryBtn");
-      btn.disabled = true;
-      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Clearing...';
+    // ── Clear All History ─────────────────────────────────────────────────────────
+    clearHistoryBtnEl.addEventListener("click", async () => {
+      if (!confirm("Clear all recent explanations history?")) return;
+      clearHistoryBtnEl.disabled = true;
+      clearHistoryBtnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
       try {
         await EklavyaXAPI.tutorClearHistory();
         loadHistory();
       } catch (err) {
         alert(err.message || "Failed to clear history.");
       } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-trash-alt"></i> Clear All';
+        clearHistoryBtnEl.disabled = false;
+        clearHistoryBtnEl.innerHTML = '<i class="fas fa-trash-alt"></i> Clear';
       }
     });
+
+    // ── Page Initialization ───────────────────────────────────────────────────────
+    initPage("student", "student_login.html");
+    loadWallet();
+    loadHistory();
   </script>
   <script src="../js/chatbot.js?v=2.1"></script>
 </body>

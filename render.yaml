@@ -12,7 +12,9 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: AI_PROVIDER
-        value: openrouter
+        value: groq
+      - key: GROQ_API_KEY
+        sync: false
       - key: OPENROUTER_API_KEY
         sync: false
       - key: CORS_ORIGINS

@@ -1,8 +1,3 @@
-"""
-app/schemas/tutor_sch.py
-────────────────────────
-Pydantic schemas for the Synapse.ai AI tutor endpoints.
-"""
 from __future__ import annotations
 
 from typing import Optional
@@ -10,7 +5,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-# ── Input Schemas ─────────────────────────────────────────────────────────────
+
 
 class ExplainRequest(BaseModel):
     """
@@ -41,8 +36,6 @@ class AnswerFeedback(BaseModel):
         ..., description="True if the student answered the question correctly."
     )
 
-
-# ── Output Schemas ────────────────────────────────────────────────────────────
 
 class ExplainResponse(BaseModel):
     """

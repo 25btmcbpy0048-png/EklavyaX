@@ -47,7 +47,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
     # ── AI Provider ──────────────────────────────────────────────────────────
-    AI_PROVIDER: str = "openrouter"      # "openrouter" | "gemini" | "openai"
+    AI_PROVIDER: str = "groq"            # "groq" | "gemini" | "openrouter" | "openai"
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_MODEL: str = "google/gemma-4-26b-a4b-it:free"
     GEMINI_API_KEY: str = ""

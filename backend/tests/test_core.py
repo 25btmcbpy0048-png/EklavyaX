@@ -362,8 +362,35 @@ class TestAIService:
     """Tests for the multi-provider AI explanation engine."""
 
     @pytest.mark.asyncio
+    async def test_get_explanation_calls_groq(self):
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_response.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": "This is a guided explanation from Groq Cloud."
+                    }
+                }
+            ]
+        }
+        fake_response.raise_for_status.return_value = None
+
+        with patch("app.core.config.settings.AI_PROVIDER", "groq"), \
+             patch("app.core.config.settings.GROQ_API_KEY", "test-groq-key"), \
+             patch("httpx.AsyncClient.post", new_callable=AsyncMock) as mock_post:
+            mock_post.return_value = fake_response
+
+            result = await get_explanation("Newton's second law", "Simple English")
+            assert result == "This is a guided explanation from Groq Cloud."
+            assert mock_post.called
+            call_url = mock_post.call_args[0][0]
+            assert "api.groq.com" in call_url
+
+    @pytest.mark.asyncio
     async def test_get_explanation_calls_openrouter(self):
         fake_response = MagicMock()
+        fake_response.status_code = 200
         fake_response.json.return_value = {
             "choices": [
                 {

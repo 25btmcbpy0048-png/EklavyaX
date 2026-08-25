@@ -77,24 +77,18 @@ async def explain_text(
     )
 
     # 3. Call the AI (async – non-blocking)
-    key_loaded = (
-        bool(settings.OPENROUTER_API_KEY)
-        if settings.AI_PROVIDER.lower() == "openrouter"
-        else (
-            bool(settings.GEMINI_API_KEY)
-            if settings.AI_PROVIDER.lower() == "gemini"
-            else bool(settings.OPENAI_API_KEY)
-        )
-    )
-    active_model = (
-        settings.OPENROUTER_MODEL
-        if settings.AI_PROVIDER.lower() == "openrouter"
-        else (
-            settings.GEMINI_MODEL
-            if settings.AI_PROVIDER.lower() == "gemini"
-            else settings.OPENAI_MODEL
-        )
-    )
+    if settings.AI_PROVIDER.lower() == "groq":
+        key_loaded = bool(settings.GROQ_API_KEY)
+        active_model = settings.GROQ_MODEL
+    elif settings.AI_PROVIDER.lower() == "openrouter":
+        key_loaded = bool(settings.OPENROUTER_API_KEY)
+        active_model = settings.OPENROUTER_MODEL
+    elif settings.AI_PROVIDER.lower() == "gemini":
+        key_loaded = bool(settings.GEMINI_API_KEY)
+        active_model = settings.GEMINI_MODEL
+    else:
+        key_loaded = bool(settings.OPENAI_API_KEY)
+        active_model = settings.OPENAI_MODEL
     print(
         f"DEBUG AI: provider={settings.AI_PROVIDER}, "
         f"key_loaded={key_loaded}, "

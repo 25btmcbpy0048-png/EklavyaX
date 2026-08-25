@@ -1,13 +1,3 @@
-"""
-app/api/routes/quiz.py
-──────────────────────
-Standalone Quiz endpoints powered by the Part A anti-gaming safeguard pipeline.
-
-POST /quiz/start                  – Start a new quiz run (server stamps question_shown_at & shuffles options)
-POST /quiz/submit                 – Submit answer through safeguarded pipeline
-GET  /quiz/{run_id}/next/{idx}    – Get next question in current quiz run
-GET  /quiz/summary/{run_id}       – Post-quiz summary screen data
-"""
 from __future__ import annotations
 
 import random
@@ -42,9 +32,6 @@ from app.services.safeguards import (
 router = APIRouter(prefix="/quiz", tags=["Quiz"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /quiz/generate-ai
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post(
     "/generate-ai",
@@ -56,10 +43,7 @@ async def generate_ai_quiz(
     current_user: models.User = Depends(require_role("student", "teacher", "admin")),
     db: Session = Depends(get_db),
 ):
-    """
-    Generate multiple-choice STEM quiz questions dynamically using AI (Groq / Gemini / OpenRouter / OpenAI)
-    and save them directly into the question bank.
-    """
+    
     from app.services.ai_service import generate_ai_quiz_questions
 
     generated = await generate_ai_quiz_questions(topic=topic, num_questions=num_questions)
@@ -78,9 +62,6 @@ async def generate_ai_quiz(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /quiz/start
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post(
     "/start",
@@ -104,7 +85,7 @@ def start_quiz(
 
     questions = query.all()
     if not questions:
-        # Fallback to any questions
+        
         questions = db.query(models.QuizQuestion).all()
 
     if not questions:
@@ -137,7 +118,7 @@ def start_quiz(
             question_index=idx,
             total_questions=num_q,
             shuffled_order=permutation_to_str(permutation),
-            question_shown_at=now if idx == 0 else now,  # Updated when next is requested
+            question_shown_at=now if idx == 0 else now,  
         )
         db.add(q_session)
         sessions.append(q_session)
@@ -169,9 +150,6 @@ def start_quiz(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /quiz/submit
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post(
     "/submit",
@@ -211,7 +189,7 @@ def submit_answer(
             detail="This question has already been answered.",
         )
 
-    # Run through safeguard pipeline
+   
     result = grant_safeguarded_reward(
         db=db,
         user_id=current_user.id,
@@ -219,7 +197,7 @@ def submit_answer(
         selected_shuffled_index=payload.selected_option_index,
     )
 
-    # Compute current streak of correct answers in this quiz run
+    
     run_sessions = (
         db.query(models.QuizSession)
         .filter_by(quiz_run_id=session.quiz_run_id)
@@ -234,7 +212,7 @@ def submit_answer(
             else:
                 streak = 0
 
-    # Determine correct option index in the shuffled list
+
     perm = str_to_permutation(session.shuffled_order)
     canonical_correct = session.question.correct_option_index
     shuffled_correct_index = perm.index(canonical_correct) if canonical_correct in perm else 0
@@ -256,9 +234,6 @@ def submit_answer(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /quiz/{run_id}/next/{question_index}
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/{quiz_run_id}/next/{question_index}",
@@ -290,14 +265,14 @@ def get_next_question(
             detail="Forbidden",
         )
 
-    # Stamp question_shown_at when retrieved
+
     now = datetime.now(timezone.utc)
     if session.submitted_at is None:
         session.question_shown_at = now
         db.commit()
         db.refresh(session)
 
-    # Reconstruct shuffled options from stored permutation
+   
     q = session.question
     canonical = q.get_canonical_options()
     perm = str_to_permutation(session.shuffled_order)
@@ -320,9 +295,6 @@ def get_next_question(
     return QuizNextResponse(finished=False, question=q_response)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /quiz/summary/{run_id}
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/summary/{quiz_run_id}",
@@ -367,7 +339,7 @@ def get_quiz_summary(
 
     rejections = sum(1 for s in sessions if s.rejection_reason is not None)
 
-    # Check for pattern flags in audit log for this quiz
+   
     flag_count = (
         db.query(models.RewardAuditLog)
         .filter(

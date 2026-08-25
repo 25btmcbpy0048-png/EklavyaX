@@ -1,8 +1,3 @@
-"""
-app/schemas/user_sch.py
-───────────────────────
-Pydantic schemas for User authentication and responses.
-"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -18,7 +13,7 @@ class UserRole(str, Enum):
     admin = "admin"
 
 
-# ── Input Schemas ─────────────────────────────────────────────────────────────
+
 
 class UserCreate(BaseModel):
     """Payload for registering a new user."""
@@ -63,7 +58,7 @@ class PasswordChange(BaseModel):
     new_password: str = Field(..., min_length=6, description="New password (min 6 chars)")
 
 
-# ── Output Schemas ────────────────────────────────────────────────────────────
+
 
 class UserResponse(BaseModel):
     """Safe user representation returned from all endpoints."""

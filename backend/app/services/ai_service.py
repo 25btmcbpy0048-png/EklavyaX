@@ -72,6 +72,103 @@ def build_explanation_prompt(highlighted_text: str, target_language: str) -> str
     )
 
 
+# ── Provider: Groq Cloud ──────────────────────────────────────────────────────
+
+GROQ_FALLBACK_MODELS = [
+    "openai/gpt-oss-120b",
+    "openai/gpt-oss-20b",
+    "qwen/qwen3.6-27b",
+    "groq/compound",
+    "groq/compound-mini",
+]
+
+
+async def _call_groq(prompt: str) -> str:
+    """
+    Call the Groq Cloud Chat Completions API (ultra-fast LPU inference).
+
+    Includes model fallback across Groq's high-speed free tier models.
+
+    Raises:
+        HTTPException 503 if API key is missing.
+        HTTPException 502 on API failure.
+        HTTPException 429 if rate-limited.
+    """
+    if not settings.GROQ_API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Groq API key not configured. Contact the administrator or set GROQ_API_KEY in .env.",
+        )
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    models_to_try = []
+    if settings.GROQ_MODEL:
+        models_to_try.append(settings.GROQ_MODEL)
+    for fb_model in GROQ_FALLBACK_MODELS:
+        if fb_model not in models_to_try:
+            models_to_try.append(fb_model)
+
+    last_status = None
+    rate_limited_count = 0
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for model in models_to_try:
+            payload = {
+                "model": model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": 1200,
+            }
+
+            try:
+                response = await client.post(url, json=payload, headers=headers)
+
+                if response.status_code == 429:
+                    rate_limited_count += 1
+                    last_status = 429
+                    logger.warning("Groq model '%s' rate-limited (429). Trying fallback...", model)
+                    continue
+
+                if response.status_code in (400, 404, 502, 503):
+                    logger.warning("Groq model '%s' returned %d. Trying next model...", model, response.status_code)
+                    last_status = response.status_code
+                    continue
+
+                response.raise_for_status()
+
+                data = response.json()
+                choices = data.get("choices", [])
+                if choices and "message" in choices[0] and choices[0]["message"].get("content"):
+                    raw_content = choices[0]["message"]["content"]
+                    # Strip <think>...</think> tags if model includes them
+                    import re
+                    clean_content = re.sub(r"<think>.*?</think>", "", raw_content, flags=re.DOTALL).strip()
+                    return clean_content or raw_content
+                else:
+                    logger.warning("Empty response from Groq model %s: %s", model, data)
+                    continue
+
+            except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+                logger.warning("Error with Groq model '%s': %s", model, exc)
+                continue
+
+    if rate_limited_count > 0 and last_status == 429:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="AI is busy right now (rate-limited). Please wait a moment and try again.",
+        )
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail="AI provider (Groq) is currently unavailable. Please try again in a moment.",
+    )
+
+
 # ── Provider: OpenRouter ──────────────────────────────────────────────────────
 
 # ── Fallback candidate models for OpenRouter free tier ────────────────────────
@@ -327,10 +424,12 @@ async def get_explanation(highlighted_text: str, target_language: str = "Simple 
 
     # Determine provider execution order
     provider_order = [provider]
-    if provider != "openrouter" and settings.OPENROUTER_API_KEY:
-        provider_order.append("openrouter")
+    if provider != "groq" and settings.GROQ_API_KEY:
+        provider_order.append("groq")
     if provider != "gemini" and settings.GEMINI_API_KEY:
         provider_order.append("gemini")
+    if provider != "openrouter" and settings.OPENROUTER_API_KEY:
+        provider_order.append("openrouter")
     if provider != "openai" and settings.OPENAI_API_KEY:
         provider_order.append("openai")
 
@@ -338,10 +437,12 @@ async def get_explanation(highlighted_text: str, target_language: str = "Simple 
 
     for p in provider_order:
         try:
-            if p == "openrouter":
-                return await _call_openrouter(prompt)
+            if p == "groq":
+                return await _call_groq(prompt)
             elif p == "gemini":
                 return await _call_gemini(prompt)
+            elif p == "openrouter":
+                return await _call_openrouter(prompt)
             elif p == "openai":
                 return await _call_openai(prompt)
         except HTTPException as exc:

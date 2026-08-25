@@ -1,11 +1,3 @@
-"""
-app/services/game_logic.py
-──────────────────────────
-Core gamification algorithms for EklavyaX.
-
-All functions accept a SQLAlchemy Session as their first argument and
-operate on ORM objects. Routes should stay thin – business logic lives here.
-"""
 from __future__ import annotations
 
 import random
@@ -19,7 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.config import settings
 from app.db import models
 
-# ── Faction configuration ─────────────────────────────────────────────────────
+
 
 FACTION_DEFINITIONS = [
     {
@@ -49,9 +41,7 @@ FACTION_DEFINITIONS = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Faction helpers
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def ensure_factions_exist(db: Session) -> None:
     """
@@ -74,7 +64,7 @@ def assign_faction(db: Session) -> models.Faction:
     Returns:
         Faction ORM object.
     """
-    # Count members per faction
+  
     faction_counts = (
         db.query(models.Faction, func.count(models.User.id).label("cnt"))
         .outerjoin(models.User, models.User.faction_id == models.Faction.id)
@@ -88,7 +78,7 @@ def assign_faction(db: Session) -> models.Faction:
             detail="Factions not initialised. Contact an administrator.",
         )
 
-    # Find minimum count and pick randomly among those with fewest members
+    
     min_count = min(row.cnt for row in faction_counts)
     candidates = [row.Faction for row in faction_counts if row.cnt == min_count]
     return random.choice(candidates)
@@ -102,9 +92,7 @@ def update_faction_score(db: Session, faction_id: int, points: int) -> None:
         db.commit()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Streak management
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def update_streak(db: Session, user_id: int) -> models.Streak:
     """
@@ -131,11 +119,11 @@ def update_streak(db: Session, user_id: int) -> models.Streak:
     today = date.today()
 
     if streak.last_activity_date is None:
-        # First ever activity
+       
         streak.current_streak = 1
 
     elif streak.last_activity_date == today:
-        # Already logged today – nothing to do
+        
         return streak
 
     else:
@@ -145,14 +133,14 @@ def update_streak(db: Session, user_id: int) -> models.Streak:
             # Consecutive day
             streak.current_streak += 1
         elif streak.streak_freezes > 0:
-            # Use a freeze to bridge the gap
+            
             streak.streak_freezes -= 1
             streak.current_streak += 1
         else:
-            # Streak broken
+           
             streak.current_streak = 1
 
-    # Track personal best
+
     if streak.current_streak > streak.longest_streak:
         streak.longest_streak = streak.current_streak
 
@@ -162,9 +150,7 @@ def update_streak(db: Session, user_id: int) -> models.Streak:
     return streak
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Wallet / Economy
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def earn_coins_and_xp(
     db: Session,
@@ -200,7 +186,6 @@ def earn_coins_and_xp(
     )
     db.add(tx)
 
-    # Propagate XP to faction score
     if xp > 0:
         user = db.get(models.User, user_id)
         if user and user.faction_id:
@@ -271,9 +256,7 @@ def refund_coins(
     return earn_coins_and_xp(db, user_id, coins=coins, xp=0, reason=reason)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Challenges
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def process_challenge_winner(
     db: Session,
@@ -308,11 +291,11 @@ def process_challenge_winner(
             detail="winner_id must be one of the two participants.",
         )
 
-    # Total pot = both sides wagered the same amount
+    
     pot = challenge.wager_coins * 2
 
-    # Award pot + XP to winner
-    xp_reward = 25 + (pot // 10)  # Base 25 XP + 1 XP per 10 coins in pot
+  
+    xp_reward = 25 + (pot // 10)  
     winner_wallet = earn_coins_and_xp(
         db,
         winner_id,
@@ -321,7 +304,7 @@ def process_challenge_winner(
         reason="challenge_wager_win",
     )
 
-    # Finalize challenge
+
     challenge.winner_id = winner_id
     challenge.status = models.ChallengeStatus.completed
     challenge.completed_at = datetime.now(timezone.utc)
@@ -331,9 +314,7 @@ def process_challenge_winner(
     return challenge, winner_wallet
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Leaderboards
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def get_class_leaderboard(
     db: Session, limit: int = 10
@@ -403,9 +384,6 @@ def get_faction_leaderboard(db: Session) -> List[dict]:
     ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Quiz & Battle Initialization
-# ─────────────────────────────────────────────────────────────────────────────
 
 SAMPLE_QUIZ_QUESTIONS = [
     {
@@ -564,7 +542,7 @@ def ensure_active_battle_exists(db: Session) -> None:
         db.commit()
         db.refresh(battle)
 
-        # Initialize scores for all factions
+       
         factions = db.query(models.Faction).all()
         for f in factions:
             existing_score = (

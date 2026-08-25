@@ -134,7 +134,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     )
 
     # AI provider logging
-    if settings.AI_PROVIDER.lower() == "openrouter":
+    if settings.AI_PROVIDER.lower() == "groq":
+
+        logger.info(
+            "🔑 Groq configured: model=%s, key_loaded=%s (len=%d)",
+            settings.GROQ_MODEL,
+            bool(settings.GROQ_API_KEY),
+            len(settings.GROQ_API_KEY),
+        )
+
+        print(
+            f"[STARTUP] AI_PROVIDER = groq "
+            f"(model={settings.GROQ_MODEL}, "
+            f"key_loaded={bool(settings.GROQ_API_KEY)})"
+        )
+
+    elif settings.AI_PROVIDER.lower() == "openrouter":
 
         logger.info(
             "🔑 OpenRouter configured: model=%s, key_loaded=%s (len=%d)",

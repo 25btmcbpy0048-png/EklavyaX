@@ -1,8 +1,3 @@
-"""
-app/schemas/quiz_sch.py
-───────────────────────
-Pydantic schemas for the quiz system.
-"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,7 +6,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-# ── Start Quiz ────────────────────────────────────────────────────────────────
 
 class QuizStartRequest(BaseModel):
     """Start a new quiz run. Optionally filter by topic."""
@@ -23,13 +17,13 @@ class QuizQuestionResponse(BaseModel):
     """A single quiz question served to the client with shuffled options."""
     session_id: int
     quiz_run_id: str
-    question_index: int            # 0-based
+    question_index: int           
     total_questions: int
     prompt: str
-    options: List[str]             # Shuffled order
+    options: List[str]            
     preview_coins: int
     preview_xp: int
-    question_shown_at: datetime    # Server timestamp for timer sync
+    question_shown_at: datetime   c
     topic: str
     difficulty: str
 
@@ -41,7 +35,7 @@ class QuizStartResponse(BaseModel):
     question: QuizQuestionResponse
 
 
-# ── Submit Answer ─────────────────────────────────────────────────────────────
+
 
 class QuizSubmitRequest(BaseModel):
     """Submit an answer for a quiz session question."""
@@ -52,7 +46,7 @@ class QuizSubmitRequest(BaseModel):
 class QuizSubmitResponse(BaseModel):
     """Server response after answer submission (correctness from server only)."""
     is_correct: bool
-    correct_option_index: int      # In shuffled order, for client feedback
+    correct_option_index: int     
     coins_awarded: int
     xp_awarded: int
     preview_coins: int
@@ -61,10 +55,10 @@ class QuizSubmitResponse(BaseModel):
     detail: Optional[str] = None
     wallet_balance: Optional[int] = None
     wallet_xp: Optional[int] = None
-    streak: int                    # Consecutive correct counter
+    streak: int                    
 
 
-# ── Next Question ─────────────────────────────────────────────────────────────
+
 
 class QuizNextResponse(BaseModel):
     """Response with the next question or end-of-quiz marker."""
@@ -72,7 +66,7 @@ class QuizNextResponse(BaseModel):
     question: Optional[QuizQuestionResponse] = None
 
 
-# ── Quiz Summary ──────────────────────────────────────────────────────────────
+
 
 class QuizAnswerSummary(BaseModel):
     """Per-question result in the quiz summary."""
@@ -92,7 +86,7 @@ class QuizSummaryResponse(BaseModel):
     accuracy_pct: float
     total_coins: int
     total_xp: int
-    rejections: int                # How many answers were rejected
-    flags: int                     # How many triggered pattern flags
+    rejections: int              
+    flags: int                     
     answers: List[QuizAnswerSummary]
-    transparency_notices: List[str]  # e.g. "2 answers were too fast to count"
+    transparency_notices: List[str]  

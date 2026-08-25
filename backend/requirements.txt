@@ -1,6 +1,3 @@
-# EklavyaX Synapse Backend — Python dependencies
-# Updated to support Python 3.13 (pre-built wheels, no Rust required)
-
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
 sqlalchemy==2.0.36

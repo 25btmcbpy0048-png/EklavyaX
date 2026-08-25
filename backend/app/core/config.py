@@ -1,9 +1,3 @@
-"""
-app/core/config.py
-──────────────────
-Central configuration using pydantic-settings.
-All settings are read from environment variables (or .env file).
-"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -12,18 +6,15 @@ from dotenv import load_dotenv
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Resolve the .env file relative to this file's location so it always loads
-# correctly regardless of where uvicorn/the process is launched from.
+
 _ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
 
-# Force-load the .env into os.environ BEFORE pydantic-settings instantiates
-# Settings(). This guarantees the key is available even if pydantic-settings
-# has trouble resolving the env_file path.
+
 load_dotenv(dotenv_path=_ENV_FILE, override=True)
 
 
 class Settings(BaseSettings):
-    """Application-wide settings loaded from environment / .env file."""
+    
 
     model_config = SettingsConfigDict(
         env_file=str(_ENV_FILE),
@@ -32,22 +23,21 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    # ── Application ──────────────────────────────────────────────────────────
+   
     APP_ENV: str = "development"
     APP_TITLE: str = "Synapse Backend for EklavyaX"
     APP_VERSION: str = "1.0.0"
 
-    # ── Database ─────────────────────────────────────────────────────────────
-    # Configured for PostgreSQL by default. Can be customized via .env.
+  
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/eklavyax"
 
-    # ── JWT / Security ───────────────────────────────────────────────────────
+  
     SECRET_KEY: str = "CHANGE_ME_use_a_long_random_string_in_production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
-    # ── AI Provider ──────────────────────────────────────────────────────────
-    AI_PROVIDER: str = "groq"            # "groq" | "gemini" | "openrouter" | "openai"
+    
+    AI_PROVIDER: str = "groq"           
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "openai/gpt-oss-120b"
     OPENROUTER_API_KEY: str = ""
@@ -57,7 +47,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
-    # ── Economy Tuning ───────────────────────────────────────────────────────
+   
     AI_EXPLAIN_COST: int = 10            # EduCoins charged per AI explain call
     AI_REFUND_COINS: int = 5             # Coins refunded on correct answer
     STREAK_BONUS_COINS: int = 5          # Daily streak reward
@@ -65,7 +55,7 @@ class Settings(BaseSettings):
     BOUNTY_COMPLETION_XP: int = 50       # XP for completing a bounty
     NEW_USER_COINS: int = 100            # Starting wallet balance
 
-    # ── Anti-Gaming Safeguards ───────────────────────────────────────────────
+   
     QUESTION_MIN_COOLDOWN_SECONDS: float = 2.0    # Min seconds before answer accepted
     DAILY_MAX_COINS: int = 500                     # Max coins earnable per day via quizzes
     DAILY_MAX_XP: int = 1000                       # Max XP earnable per day via quizzes
@@ -74,26 +64,26 @@ class Settings(BaseSettings):
     ROLLING_WINDOW_SIZE: int = 20                   # Questions in rolling pattern window
     Z_SCORE_FLAG_THRESHOLD: float = 2.5             # Z-score above which user is flagged
 
-    # ── Quiz Tuning ──────────────────────────────────────────────────────────
+  
     QUIZ_CORRECT_COINS: int = 10         # Coins per correct quiz answer
     QUIZ_CORRECT_XP: int = 20            # XP per correct quiz answer
     QUIZ_DEFAULT_SIZE: int = 10           # Default questions per quiz
 
-    # ── Faction Wars Tuning ──────────────────────────────────────────────────
+  
     FACTION_WAR_POLL_INTERVAL_SECONDS: int = 5
     FACTION_WAR_LOSER_PARTICIPATION_COINS: int = 15
     FACTION_WAR_LOSER_PARTICIPATION_XP: int = 25
     FACTION_WAR_WINNER_BONUS_COINS: int = 50
     FACTION_WAR_WINNER_BONUS_XP: int = 100
 
-    # ── CORS ─────────────────────────────────────────────────────────────────
+   
     CORS_ORIGINS: str = (
         "*,http://localhost:3000,http://localhost:5173,http://localhost:5500,"
         "http://127.0.0.1:5500,http://localhost:8000,http://127.0.0.1:8000,"
         "http://localhost:8080"
     )
 
-    # ── Redis (optional) ─────────────────────────────────────────────────────
+   
     REDIS_URL: Optional[str] = None
 
     @field_validator("CORS_ORIGINS", mode="before")
@@ -109,5 +99,5 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
 
-# Singleton – import this everywhere instead of instantiating Settings again.
+.
 settings = Settings()

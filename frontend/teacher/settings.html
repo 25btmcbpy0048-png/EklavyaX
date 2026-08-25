@@ -42,11 +42,14 @@
 
     <!-- Main Content Area -->
     <main class="content-area" role="main">
-      <header class="page-header">
+      <header class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
         <div class="page-title">
           <h1><i class="fas fa-cog" style="color: var(--marigold);"></i> Teacher Profile & Settings</h1>
           <p>Manage teacher avatar, department details, office hours, and account security.</p>
         </div>
+        <button type="button" class="btn-secondary" onclick="EklavyaXAPI.logout('login.html')" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; font-weight: 700; padding: 9px 18px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s;">
+          <i class="fas fa-sign-out-alt"></i> Log Out
+        </button>
       </header>
 
       <!-- Settings Layout -->
@@ -55,6 +58,9 @@
           <button type="button" class="settings-nav-btn active" data-target="panelProfile"><i class="fas fa-user-tie"></i> Teacher Profile</button>
           <button type="button" class="settings-nav-btn" data-target="panelNotifs"><i class="fas fa-bell"></i> Notifications</button>
           <button type="button" class="settings-nav-btn" data-target="panelSecurity"><i class="fas fa-lock"></i> Security & Password</button>
+          <button type="button" class="settings-nav-btn" onclick="EklavyaXAPI.logout('login.html')" style="margin-top: auto; color: #f87171; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25);">
+            <i class="fas fa-sign-out-alt"></i> Log Out
+          </button>
         </div>
 
         <div class="settings-panel">
@@ -69,7 +75,7 @@
               <span style="font-size: 0.8rem; color: var(--chalk-dim);">Selecting an avatar updates your profile icon across all pages instantly.</span>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+            <div class="form-row form-row-2">
               <div class="form-group">
                 <label>Full Display Name</label>
                 <input type="text" id="settingName" class="form-control" placeholder="e.g. Mr. Aarav Singh" required>
@@ -81,7 +87,7 @@
               </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px;">
+            <div class="form-row form-row-3">
               <div class="form-group">
                 <label>Phone Number</label>
                 <input type="tel" id="settingPhone" class="form-control" placeholder="+91 98123 45678">
@@ -101,7 +107,7 @@
               </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+            <div class="form-row form-row-2">
               <div class="form-group">
                 <label>Subject / Specialization</label>
                 <input type="text" id="settingGrade" class="form-control" placeholder="Senior Physics & Mechanics Specialist">
@@ -171,6 +177,17 @@
               <button type="submit" class="btn-primary"><i class="fas fa-key"></i> Update Password</button>
             </div>
           </form>
+
+          <!-- Danger Zone / Log Out Section -->
+          <div style="margin-top: 10px; padding: 18px 22px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <strong style="color: #f87171; font-size: 1rem;"><i class="fas fa-sign-out-alt"></i> Faculty Account Session</strong>
+              <p style="color: var(--chalk-dim); font-size: 0.84rem; margin: 4px 0 0;">End your active teacher session securely on this browser.</p>
+            </div>
+            <button type="button" class="btn-primary" style="background: #ef4444; border-color: #dc2626; color: #ffffff; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; cursor: pointer;" onclick="EklavyaXAPI.logout('login.html')">
+              <i class="fas fa-sign-out-alt"></i> Log Out
+            </button>
+          </div>
         </div>
       </section>
     </main>

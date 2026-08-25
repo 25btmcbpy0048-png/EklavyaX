@@ -542,10 +542,32 @@
   gap: 20px;
 }
 
+.form-row {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
+  min-width: 0;
 }
 
 .form-group label {
@@ -558,14 +580,44 @@
   background: rgba(10, 24, 18, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
-  padding: 10px 14px;
+  padding: 11px 14px;
   color: var(--chalk, #f5f0e2);
   font-size: 0.95rem;
   outline: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .form-control:focus {
   border-color: var(--marigold, #eeb43e);
+}
+
+.form-control::placeholder {
+  color: rgba(169, 189, 174, 0.5);
+}
+
+.avatar-picker {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.avatar-option {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  object-fit: cover;
+}
+
+.avatar-option.selected {
+  border-color: var(--marigold, #eeb43e);
+  box-shadow: 0 0 16px rgba(238, 180, 62, 0.5);
+  transform: scale(1.05);
 }
 
 textarea.form-control {
@@ -765,9 +817,20 @@ textarea.form-control {
     font-size: 0.8rem !important;
   }
 
-  .form-row {
+  .form-row,
+  .form-row-2,
+  .form-row-3 {
+    display: flex !important;
+    flex-direction: column !important;
     grid-template-columns: 1fr !important;
     gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .settings-panel form button[type="submit"],
+  .settings-panel .btn-primary {
+    width: 100% !important;
+    justify-content: center !important;
   }
 
   .avatar-picker {
@@ -776,8 +839,8 @@ textarea.form-control {
   }
 
   .avatar-option {
-    width: 52px !important;
-    height: 52px !important;
+    width: 54px !important;
+    height: 54px !important;
   }
 
   /* Tab group horizontal scroll */

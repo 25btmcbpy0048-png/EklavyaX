@@ -110,18 +110,24 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             except Exception:
                 con.rollback()
 
-    # Seed default factions
+    # Seed default factions, quiz questions, and active battle
     from app.db.database import SessionLocal
-    from app.services.game_logic import ensure_factions_exist
+    from app.services.game_logic import (
+        ensure_active_battle_exists,
+        ensure_factions_exist,
+        ensure_quiz_questions_exist,
+    )
 
     db = SessionLocal()
 
     try:
         ensure_factions_exist(db)
-        logger.info("✅ Default factions seeded.")
+        ensure_quiz_questions_exist(db)
+        ensure_active_battle_exists(db)
+        logger.info("✅ Default factions, quiz questions, and active battle seeded.")
 
     except Exception as exc:
-        logger.error("❌ Failed to seed factions: %s", exc)
+        logger.error("❌ Failed to seed initial data: %s", exc)
 
     finally:
         db.close()
@@ -310,11 +316,13 @@ async def global_exception_handler(
 
 # ── API Routers ───────────────────────────────────────────────────────────────
 
-from app.api.routes import auth, bounties, economy, tutor  # noqa: E402
+from app.api.routes import auth, bounties, economy, faction_wars, quiz, tutor  # noqa: E402
 
 app.include_router(auth.router)
 app.include_router(bounties.router)
 app.include_router(economy.router)
+app.include_router(faction_wars.router)
+app.include_router(quiz.router)
 app.include_router(tutor.router)
 
 

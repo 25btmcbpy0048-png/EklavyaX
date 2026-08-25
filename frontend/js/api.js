@@ -15,7 +15,9 @@ const API_BASE =
   localStorage.getItem("eklavya_api_base") ||
   (window.location.hostname.includes("vercel.app")
     ? "https://eklavyax.onrender.com"
-    : "");
+    : (window.location.port && window.location.port !== "8000" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+       ? `http://${window.location.hostname}:8000`
+       : ""));
 
 
 const EklavyaXAPI = (() => {
@@ -207,15 +209,95 @@ const EklavyaXAPI = (() => {
 
   // ── Peer Challenges ──────────────────────────────────────────────────────
 
-  function listChallenges(statusFilter) {
-    const qs = statusFilter ? `?status_filter=${statusFilter}` : "";
+  function listChallenges(statusFilter = null) {
+    const qs = statusFilter ? `?status_filter=${encodeURIComponent(statusFilter)}` : "";
     return request(`/challenges${qs}`);
   }
 
-  function createChallenge({ opponentId, topic, wagerCoins = 0 }) {
+  function createChallenge({ opponent_id, subject, wager_coins }) {
     return request("/challenges", {
       method: "POST",
-      body: { opponent_id: opponentId, topic, wager_coins: wagerCoins },
+      body: { opponent_id, subject, wager_coins },
+    });
+  }
+
+  function acceptChallenge(challengeId) {
+    return request(`/challenges/${challengeId}/accept`, {
+      method: "POST",
+    });
+  }
+
+  function submitChallengeResult(challengeId, result) {
+    return request(`/challenges/${challengeId}/submit`, {
+      method: "POST",
+      body: result,
+    });
+  }
+
+  // ── Quiz System ──────────────────────────────────────────────────────────
+
+  function startQuiz(opts = {}) {
+    return request("/quiz/start", {
+      method: "POST",
+      body: {
+        topic: opts.topic || null,
+        num_questions: opts.numQuestions || null,
+      },
+    });
+  }
+
+  function submitQuizAnswer({ sessionId, selectedOptionIndex }) {
+    return request("/quiz/submit", {
+      method: "POST",
+      body: {
+        session_id: sessionId,
+        selected_option_index: selectedOptionIndex,
+      },
+    });
+  }
+
+  function getNextQuizQuestion(quizRunId, questionIndex) {
+    return request(`/quiz/${quizRunId}/next/${questionIndex}`);
+  }
+
+  function getQuizSummary(quizRunId) {
+    return request(`/quiz/summary/${quizRunId}`);
+  }
+
+  function generateAIQuiz({ topic = "Physics", numQuestions = 5 } = {}) {
+    return request(`/quiz/generate-ai?topic=${encodeURIComponent(topic)}&num_questions=${numQuestions}`, {
+      method: "POST",
+    });
+  }
+
+  // ── Faction Wars Battle Engine ───────────────────────────────────────────
+
+  function getActiveFactionBattle() {
+    return request("/faction-wars/battle/active");
+  }
+
+  function getFactionBattleLeaderboard(battleId, factionId = null) {
+    const qs = factionId ? `?faction_id=${factionId}` : "";
+    return request(`/faction-wars/battle/${battleId}/leaderboard${qs}`);
+  }
+
+  function finalizeFactionBattle(battleId) {
+    return request(`/faction-wars/battle/${battleId}/finalize`, {
+      method: "POST",
+    });
+  }
+
+  function listFactions() {
+    return request("/faction-wars/factions");
+  }
+
+  function getBattleHistory() {
+    return request("/faction-wars/history");
+  }
+
+  function startNewFactionBattle() {
+    return request("/faction-wars/battle/start-new", {
+      method: "POST",
     });
   }
 
@@ -309,10 +391,29 @@ const EklavyaXAPI = (() => {
     tutorClearHistory,
     listChallenges,
     createChallenge,
+    acceptChallenge,
+    submitChallengeResult,
+    startQuiz,
+    submitQuizAnswer,
+    getNextQuizQuestion,
+    getQuizSummary,
+    generateAIQuiz,
+    getActiveFactionBattle,
+    getFactionBattleLeaderboard,
+    finalizeFactionBattle,
+    listFactions,
+    getBattleHistory,
+    startNewFactionBattle,
     levelFromXp,
     displayName,
     getAvatarUrl,
     applyUserAvatar,
   };
 })();
+
+// Explicitly bind to global window
+if (typeof window !== "undefined") {
+  window.EklavyaXAPI = EklavyaXAPI;
+}
+
 

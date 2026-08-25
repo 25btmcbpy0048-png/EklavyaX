@@ -75,11 +75,13 @@ def build_explanation_prompt(highlighted_text: str, target_language: str) -> str
 # ── Provider: Groq Cloud ──────────────────────────────────────────────────────
 
 GROQ_FALLBACK_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
     "qwen/qwen3.6-27b",
-    "groq/compound",
-    "groq/compound-mini",
 ]
 
 
@@ -462,4 +464,97 @@ async def get_explanation(highlighted_text: str, target_language: str = "Simple 
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         detail=f"No working AI provider configured. Set AI_PROVIDER or check API keys.",
     )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Quiz Question Generator
+# ─────────────────────────────────────────────────────────────────────────────
+
+QUIZ_GEN_PROMPT_TEMPLATE = """You are an expert STEM exam & quiz creator for secondary/higher-secondary students.
+Generate exactly {num_questions} multiple-choice questions on the topic: "{topic}".
+
+STRICT FORMAT REQUIREMENT:
+Respond ONLY with a valid JSON array of objects, with NO markdown ticks, NO commentary, NO preamble.
+Each object in the array must follow this exact schema:
+[
+  {{
+    "topic": "{topic}",
+    "prompt": "Clear, concise conceptual question statement",
+    "option_a": "Option A text",
+    "option_b": "Option B text",
+    "option_c": "Option C text",
+    "option_d": "Option D text",
+    "correct_option_index": 0,
+    "difficulty": "medium",
+    "preview_coins": 10,
+    "preview_xp": 20
+  }}
+]
+Note: correct_option_index must be an integer from 0 to 3 (0=option_a, 1=option_b, 2=option_c, 3=option_d).
+"""
+
+async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 5) -> list[dict]:
+    """
+    Generate multiple-choice quiz questions dynamically using the configured AI provider.
+    """
+    import json
+    import re
+
+    prompt = QUIZ_GEN_PROMPT_TEMPLATE.format(
+        num_questions=min(num_questions, 15),
+        topic=topic,
+    )
+
+    raw_response = await get_explanation(prompt)
+
+    # Clean markdown if present
+    cleaned = raw_response.strip()
+    if cleaned.startswith("```json"):
+        cleaned = cleaned[7:]
+    elif cleaned.startswith("```"):
+        cleaned = cleaned[3:]
+    if cleaned.endswith("```"):
+        cleaned = cleaned[:-3]
+    cleaned = cleaned.strip()
+
+    # Extract JSON array
+    match = re.search(r"\[\s*\{.*\}\s*\]", cleaned, re.DOTALL)
+    if match:
+        cleaned = match.group(0)
+
+    try:
+        parsed = json.loads(cleaned)
+        if isinstance(parsed, list):
+            valid_questions = []
+            for item in parsed:
+                if (
+                    "prompt" in item
+                    and "option_a" in item
+                    and "option_b" in item
+                    and "option_c" in item
+                    and "option_d" in item
+                    and "correct_option_index" in item
+                ):
+                    valid_questions.append({
+                        "topic": item.get("topic", topic),
+                        "prompt": item["prompt"],
+                        "option_a": item["option_a"],
+                        "option_b": item["option_b"],
+                        "option_c": item["option_c"],
+                        "option_d": item["option_d"],
+                        "correct_option_index": int(item["correct_option_index"]) % 4,
+                        "difficulty": item.get("difficulty", "medium"),
+                        "preview_coins": int(item.get("preview_coins", 10)),
+                        "preview_xp": int(item.get("preview_xp", 20)),
+                    })
+            if valid_questions:
+                return valid_questions
+    except Exception as exc:
+        logger.warning("Failed to parse AI quiz JSON: %s. Raw: %s", exc, raw_response[:200])
+
+    raise HTTPException(
+        status_code=status.HTTP_502_BAD_GATEWAY,
+        detail="AI generated an invalid question format. Please retry.",
+    )
+
 

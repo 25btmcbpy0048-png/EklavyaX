@@ -1,0 +1,418 @@
+"""
+app/api/routes/quiz.py
+──────────────────────
+Standalone Quiz endpoints powered by the Part A anti-gaming safeguard pipeline.
+
+POST /quiz/start                  – Start a new quiz run (server stamps question_shown_at & shuffles options)
+POST /quiz/submit                 – Submit answer through safeguarded pipeline
+GET  /quiz/{run_id}/next/{idx}    – Get next question in current quiz run
+GET  /quiz/summary/{run_id}       – Post-quiz summary screen data
+"""
+from __future__ import annotations
+
+import random
+import uuid
+from datetime import datetime, timezone
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.core.config import settings
+from app.core.security import get_current_user, require_role
+from app.db import models
+from app.db.database import get_db
+from app.schemas.quiz_sch import (
+    QuizAnswerSummary,
+    QuizNextResponse,
+    QuizQuestionResponse,
+    QuizStartRequest,
+    QuizStartResponse,
+    QuizSubmitRequest,
+    QuizSubmitResponse,
+    QuizSummaryResponse,
+)
+from app.services.safeguards import (
+    generate_shuffled_options,
+    grant_safeguarded_reward,
+    permutation_to_str,
+    str_to_permutation,
+)
+
+router = APIRouter(prefix="/quiz", tags=["Quiz"])
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /quiz/generate-ai
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/generate-ai",
+    summary="Generate new STEM questions on-the-fly using AI and add to question bank",
+)
+async def generate_ai_quiz(
+    topic: str = "Physics",
+    num_questions: int = 5,
+    current_user: models.User = Depends(require_role("student", "teacher", "admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Generate multiple-choice STEM quiz questions dynamically using AI (Groq / Gemini / OpenRouter / OpenAI)
+    and save them directly into the question bank.
+    """
+    from app.services.ai_service import generate_ai_quiz_questions
+
+    generated = await generate_ai_quiz_questions(topic=topic, num_questions=num_questions)
+    saved_questions = []
+
+    for q_data in generated:
+        q = models.QuizQuestion(**q_data)
+        db.add(q)
+        saved_questions.append(q)
+
+    db.commit()
+    return {
+        "success": True,
+        "message": f"Successfully generated {len(saved_questions)} new AI questions for topic '{topic}'.",
+        "count": len(saved_questions),
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /quiz/start
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/start",
+    response_model=QuizStartResponse,
+    summary="Start a new quiz run with server-shuffled questions",
+)
+def start_quiz(
+    payload: QuizStartRequest,
+    current_user: models.User = Depends(require_role("student", "admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Initiates a new quiz run.
+    1. Selects questions (optionally filtered by topic).
+    2. Shuffles answer options per session so client cannot exploit fixed order.
+    3. Server stamps `question_shown_at` for the first question.
+    """
+    query = db.query(models.QuizQuestion)
+    if payload.topic:
+        query = query.filter(models.QuizQuestion.topic.ilike(f"%{payload.topic}%"))
+
+    questions = query.all()
+    if not questions:
+        # Fallback to any questions
+        questions = db.query(models.QuizQuestion).all()
+
+    if not questions:
+        from app.services.game_logic import ensure_quiz_questions_exist
+        ensure_quiz_questions_exist(db)
+        questions = db.query(models.QuizQuestion).all()
+
+    if not questions:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No quiz questions found in question bank.",
+        )
+
+    num_q = payload.num_questions or settings.QUIZ_DEFAULT_SIZE
+    num_q = min(num_q, len(questions))
+    selected_questions = random.sample(questions, num_q)
+
+    quiz_run_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc)
+
+    sessions: List[models.QuizSession] = []
+    first_shuffled_options: List[str] = []
+
+    for idx, q in enumerate(selected_questions):
+        shuffled_options, permutation = generate_shuffled_options(q)
+        q_session = models.QuizSession(
+            quiz_run_id=quiz_run_id,
+            user_id=current_user.id,
+            question_id=q.id,
+            question_index=idx,
+            total_questions=num_q,
+            shuffled_order=permutation_to_str(permutation),
+            question_shown_at=now if idx == 0 else now,  # Updated when next is requested
+        )
+        db.add(q_session)
+        sessions.append(q_session)
+        if idx == 0:
+            first_shuffled_options = shuffled_options
+
+    db.commit()
+    db.refresh(sessions[0])
+
+    q0 = selected_questions[0]
+    first_q_response = QuizQuestionResponse(
+        session_id=sessions[0].id,
+        quiz_run_id=quiz_run_id,
+        question_index=0,
+        total_questions=num_q,
+        prompt=q0.prompt,
+        options=first_shuffled_options,
+        preview_coins=q0.preview_coins,
+        preview_xp=q0.preview_xp,
+        question_shown_at=sessions[0].question_shown_at,
+        topic=q0.topic,
+        difficulty=q0.difficulty,
+    )
+
+    return QuizStartResponse(
+        quiz_run_id=quiz_run_id,
+        total_questions=num_q,
+        question=first_q_response,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /quiz/submit
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post(
+    "/submit",
+    response_model=QuizSubmitResponse,
+    summary="Submit an answer — validated strictly via Part A safeguards",
+)
+def submit_answer(
+    payload: QuizSubmitRequest,
+    current_user: models.User = Depends(require_role("student", "admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Submits an answer to a question session.
+    Gated strictly through server-side safeguards:
+      1. Server answer validation
+      2. Minimum cooldown check (server-recorded timestamp)
+      3. Daily earn caps (reduced/reject/zero policy)
+      4. Reward grant + audit log
+      5. Pattern anomaly check
+    """
+    session = db.get(models.QuizSession, payload.session_id)
+    if not session:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz session not found.",
+        )
+
+    if session.user_id != current_user.id and current_user.role != models.UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This quiz session does not belong to you.",
+        )
+
+    if session.submitted_at is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This question has already been answered.",
+        )
+
+    # Run through safeguard pipeline
+    result = grant_safeguarded_reward(
+        db=db,
+        user_id=current_user.id,
+        session=session,
+        selected_shuffled_index=payload.selected_option_index,
+    )
+
+    # Compute current streak of correct answers in this quiz run
+    run_sessions = (
+        db.query(models.QuizSession)
+        .filter_by(quiz_run_id=session.quiz_run_id)
+        .order_by(models.QuizSession.question_index.asc())
+        .all()
+    )
+    streak = 0
+    for s in run_sessions:
+        if s.submitted_at:
+            if s.is_correct:
+                streak += 1
+            else:
+                streak = 0
+
+    # Determine correct option index in the shuffled list
+    perm = str_to_permutation(session.shuffled_order)
+    canonical_correct = session.question.correct_option_index
+    shuffled_correct_index = perm.index(canonical_correct) if canonical_correct in perm else 0
+
+    wallet = db.query(models.Wallet).filter_by(user_id=current_user.id).first()
+
+    return QuizSubmitResponse(
+        is_correct=result["is_correct"],
+        correct_option_index=shuffled_correct_index,
+        coins_awarded=result["coins_awarded"],
+        xp_awarded=result["xp_awarded"],
+        preview_coins=session.question.preview_coins,
+        preview_xp=session.question.preview_xp,
+        rejection_reason=result.get("rejection_reason"),
+        detail=result.get("detail"),
+        wallet_balance=wallet.balance if wallet else None,
+        wallet_xp=wallet.xp if wallet else None,
+        streak=streak,
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /quiz/{run_id}/next/{question_index}
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{quiz_run_id}/next/{question_index}",
+    response_model=QuizNextResponse,
+    summary="Get the next question in the current quiz run",
+)
+def get_next_question(
+    quiz_run_id: str,
+    question_index: int,
+    current_user: models.User = Depends(require_role("student", "admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Fetches the question at `question_index` for this run.
+    Stamps `question_shown_at` at retrieval time to ensure accurate cooldown timing.
+    """
+    session = (
+        db.query(models.QuizSession)
+        .filter_by(quiz_run_id=quiz_run_id, question_index=question_index)
+        .first()
+    )
+
+    if not session:
+        return QuizNextResponse(finished=True, question=None)
+
+    if session.user_id != current_user.id and current_user.role != models.UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden",
+        )
+
+    # Stamp question_shown_at when retrieved
+    now = datetime.now(timezone.utc)
+    if session.submitted_at is None:
+        session.question_shown_at = now
+        db.commit()
+        db.refresh(session)
+
+    # Reconstruct shuffled options from stored permutation
+    q = session.question
+    canonical = q.get_canonical_options()
+    perm = str_to_permutation(session.shuffled_order)
+    shuffled_options = [canonical[i] for i in perm]
+
+    q_response = QuizQuestionResponse(
+        session_id=session.id,
+        quiz_run_id=quiz_run_id,
+        question_index=session.question_index,
+        total_questions=session.total_questions,
+        prompt=q.prompt,
+        options=shuffled_options,
+        preview_coins=q.preview_coins,
+        preview_xp=q.preview_xp,
+        question_shown_at=session.question_shown_at,
+        topic=q.topic,
+        difficulty=q.difficulty,
+    )
+
+    return QuizNextResponse(finished=False, question=q_response)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GET /quiz/summary/{run_id}
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/summary/{quiz_run_id}",
+    response_model=QuizSummaryResponse,
+    summary="Get post-quiz summary with transparent reward breakdown & notices",
+)
+def get_quiz_summary(
+    quiz_run_id: str,
+    current_user: models.User = Depends(require_role("student", "admin")),
+    db: Session = Depends(get_db),
+):
+    """
+    Returns aggregated post-quiz summary data.
+    Transparently displays any safeguards triggered (e.g. cooldown violations, daily cap reductions).
+    """
+    sessions = (
+        db.query(models.QuizSession)
+        .filter_by(quiz_run_id=quiz_run_id)
+        .order_by(models.QuizSession.question_index.asc())
+        .all()
+    )
+
+    if not sessions:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Quiz run not found.",
+        )
+
+    if sessions[0].user_id != current_user.id and current_user.role != models.UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden",
+        )
+
+    total_q = len(sessions)
+    answered = sum(1 for s in sessions if s.submitted_at is not None)
+    correct = sum(1 for s in sessions if s.is_correct is True)
+    accuracy_pct = round((correct / answered * 100), 1) if answered > 0 else 0.0
+
+    total_coins = sum(s.coins_awarded for s in sessions)
+    total_xp = sum(s.xp_awarded for s in sessions)
+
+    rejections = sum(1 for s in sessions if s.rejection_reason is not None)
+
+    # Check for pattern flags in audit log for this quiz
+    flag_count = (
+        db.query(models.RewardAuditLog)
+        .filter(
+            models.RewardAuditLog.user_id == current_user.id,
+            models.RewardAuditLog.reason_code == models.ReasonCode.pattern_flagged,
+            models.RewardAuditLog.created_at >= sessions[0].question_shown_at,
+        )
+        .count()
+    )
+
+    notices: List[str] = []
+    cooldown_count = sum(1 for s in sessions if s.rejection_reason == "cooldown_violation")
+    if cooldown_count > 0:
+        notices.append(
+            f"⚡ {cooldown_count} answer{'s were' if cooldown_count > 1 else ' was'} submitted faster than the {settings.QUESTION_MIN_COOLDOWN_SECONDS}s minimum threshold and could not qualify for rewards."
+        )
+
+    cap_count = sum(1 for s in sessions if s.rejection_reason == "cap_exceeded")
+    if cap_count > 0:
+        notices.append(
+            f"🛡️ Daily earn limit reached ({settings.DAILY_MAX_COINS} coins / {settings.DAILY_MAX_XP} XP). Policy: {settings.CAP_EXCEEDED_POLICY}."
+        )
+
+    answers_summary: List[QuizAnswerSummary] = [
+        QuizAnswerSummary(
+            question_index=s.question_index,
+            prompt=s.question.prompt,
+            is_correct=s.is_correct,
+            coins_awarded=s.coins_awarded,
+            xp_awarded=s.xp_awarded,
+            rejection_reason=s.rejection_reason,
+        )
+        for s in sessions
+    ]
+
+    return QuizSummaryResponse(
+        quiz_run_id=quiz_run_id,
+        total_questions=total_q,
+        answered=answered,
+        correct=correct,
+        accuracy_pct=accuracy_pct,
+        total_coins=total_coins,
+        total_xp=total_xp,
+        rejections=rejections,
+        flags=flag_count,
+        answers=answers_summary,
+        transparency_notices=notices,
+    )

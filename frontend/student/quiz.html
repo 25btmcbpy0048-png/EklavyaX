@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>STEM Quiz Arena | EklavyaX</title>
+  <link rel="icon" type="image/png" href="../assets/img/logo.png?v=3.0">
+  <link rel="stylesheet" href="../css/global.css?v=3.2">
+  <link rel="stylesheet" href="../css/student_dashboard.css?v=3.2">
+  <link rel="stylesheet" href="../css/quiz.css?v=1.0">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+
+<body>
+  <div class="container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" role="navigation" aria-label="Sidebar menu">
+      <div class="logo">
+        <img src="../assets/img/logo.png?v=3.0" alt="EklavyaX Logo">
+        <span class="logo-text">EklavyaX</span>
+      </div>
+      <nav class="menu" aria-label="Primary">
+        <a href="student_dashboard.html"><i class="fas fa-home" aria-hidden="true"></i> Home</a>
+        <a href="student_my_courses.html"><i class="fas fa-book" aria-hidden="true"></i> My Courses</a>
+        <a href="explore_courses.html"><i class="fas fa-compass" aria-hidden="true"></i> Explore Courses</a>
+        <a class="active" href="quiz.html"><i class="fas fa-brain" aria-hidden="true"></i> Daily Quiz</a>
+        <a href="faction_wars.html"><i class="fas fa-shield-alt" aria-hidden="true"></i> Faction Wars</a>
+        <a href="lab_simulation.html"><i class="fas fa-vials" aria-hidden="true"></i> Lab Simulations</a>
+        <a href="eklavya_ai.html"><i class="fas fa-robot" aria-hidden="true"></i> GRAVITY AI</a>
+        <a href="doubts.html"><i class="fas fa-question-circle" aria-hidden="true"></i> Doubts</a>
+        <a href="assignments.html"><i class="fas fa-tasks" aria-hidden="true"></i> Assignments</a>
+        <a href="announcements.html"><i class="fas fa-bullhorn" aria-hidden="true"></i> Announcement</a>
+        <a href="settings.html" id="settingsBtn"><i class="fas fa-cog" aria-hidden="true"></i> Settings</a>
+      </nav>
+
+      <div class="profile" role="button" aria-pressed="false" aria-label="Edit Profile">
+        <img id="userAvatarImg" src="../assets/img/student_boy.jpg" alt="Student's profile icon">
+        <div class="profile-info">
+          <strong id="profileName">Sayan Mondal</strong>
+          <span id="profileAction">Log out</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Quiz Arena -->
+    <main class="content">
+      <section class="top-bar" style="margin-bottom: 20px;">
+        <div class="welcome-text">
+          <h1>
+            <strong><i class="fas fa-brain" style="color: var(--marigold, #f4ae25);"></i> STEM Quiz Arena</strong>
+          </h1>
+          <h2>Test your conceptual knowledge, maintain your streak, and earn EduCoins & Faction XP.</h2>
+        </div>
+      </section>
+
+      <div class="quiz-container">
+        <!-- Loading State -->
+        <div id="quizLoading" style="text-align: center; padding: 60px 20px;">
+          <i class="fas fa-circle-notch fa-spin" style="font-size: 2.5rem; color: var(--accent-gold); margin-bottom: 16px;"></i>
+          <p style="color: var(--text-muted);">Preparing your verified question set...</p>
+        </div>
+
+        <!-- HUD -->
+        <div class="quiz-hud" id="quizHud" style="display: none;">
+          <div class="quiz-hud-left">
+            <div class="quiz-progress-badge" id="quizProgress">Question 1 of 10</div>
+            <div class="quiz-topic-tag" id="quizTopic">Physics • Medium</div>
+          </div>
+          <div class="quiz-hud-right">
+            <div class="quiz-preview-badge">
+              <span>Potential:</span>
+              <strong id="previewCoins">+10 Coins</strong>
+              <strong id="previewXp">+20 XP</strong>
+            </div>
+            <div class="quiz-streak-badge" id="quizStreakBadge">
+              <i class="fas fa-fire"></i> <span id="quizStreakCount">0x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timer Bar -->
+        <div id="quizTimerContainer" style="display: none;">
+          <div class="quiz-timer-container">
+            <div class="quiz-timer-bar" id="quizTimerBar"></div>
+          </div>
+          <div class="quiz-timer-label">
+            <span>Server Response Window</span>
+            <span id="quizTimerText">30s</span>
+          </div>
+        </div>
+
+        <!-- Active Question Card -->
+        <div class="quiz-card" id="quizActiveCard" style="display: none;">
+          <div class="quiz-question-prompt" id="questionPrompt">
+            <!-- Question text injected here -->
+          </div>
+
+          <!-- Options Grid -->
+          <div class="quiz-options-grid" id="quizOptionsContainer">
+            <!-- Shuffled options injected here -->
+          </div>
+
+          <!-- Feedback Banner -->
+          <div class="quiz-feedback-banner" id="quizFeedbackBanner" style="display: none;"></div>
+
+          <!-- Actions -->
+          <div class="quiz-actions">
+            <a href="student_dashboard.html" class="quiz-btn quiz-btn-secondary">
+              <i class="fas fa-arrow-left"></i> Exit Quiz
+            </a>
+            <div>
+              <button id="submitAnswerBtn" class="quiz-btn quiz-btn-primary" onclick="EklavyaXQuiz.submitAnswer()">
+                <i class="fas fa-check-circle"></i> Submit Answer
+              </button>
+              <button id="nextQuestionBtn" class="quiz-btn quiz-btn-primary" onclick="EklavyaXQuiz.nextQuestion()" style="display: none;">
+                <i class="fas fa-arrow-right"></i> Next Question
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary Screen (Initially Hidden) -->
+        <div class="quiz-summary-card" id="quizSummaryCard" style="display: none;">
+          <div class="quiz-summary-badge">
+            <i class="fas fa-trophy"></i>
+          </div>
+          <h2 style="font-size: 1.8rem; color: var(--text); margin-bottom: 8px;">Quiz Completed!</h2>
+          <p style="color: var(--text-muted); font-size: 1rem;">Here is your verified performance summary:</p>
+
+          <div class="quiz-summary-stats">
+            <div class="quiz-stat-box">
+              <h3 id="sumAccuracy">0%</h3>
+              <p>Accuracy</p>
+            </div>
+            <div class="quiz-stat-box">
+              <h3 id="sumCoins" style="color: var(--accent-gold);">+0</h3>
+              <p>EduCoins Earned</p>
+            </div>
+            <div class="quiz-stat-box">
+              <h3 id="sumXp" style="color: #6ee7b7;">+0</h3>
+              <p>Faction XP</p>
+            </div>
+          </div>
+
+          <!-- Transparency Box -->
+          <div class="quiz-transparency-box" id="quizTransparencyBox" style="display: none;">
+            <h4><i class="fas fa-shield-alt"></i> Safeguard Audit Notices:</h4>
+            <ul id="quizTransparencyList"></ul>
+          </div>
+
+          <div style="display: flex; justify-content: center; gap: 14px; margin-top: 20px;">
+            <button class="quiz-btn quiz-btn-primary" onclick="window.location.reload()">
+              <i class="fas fa-redo"></i> Play Another Quiz
+            </button>
+            <a href="faction_wars.html" class="quiz-btn quiz-btn-secondary">
+              <i class="fas fa-shield-alt"></i> Check Faction Wars
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="../js/api.js?v=2026.10"></script>
+  <script src="../js/page_init.js?v=2026.10"></script>
+  <script src="../js/quiz.js?v=2026.10"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      initPage("student", "student_login.html");
+      EklavyaXQuiz.init();
+    });
+  </script>
+</body>
+
+</html>

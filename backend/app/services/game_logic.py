@@ -401,3 +401,184 @@ def get_faction_leaderboard(db: Session) -> List[dict]:
         }
         for idx, row in enumerate(rows)
     ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Quiz & Battle Initialization
+# ─────────────────────────────────────────────────────────────────────────────
+
+SAMPLE_QUIZ_QUESTIONS = [
+    {
+        "topic": "Physics",
+        "prompt": "What is the SI unit of electric current?",
+        "option_a": "Volt",
+        "option_b": "Ampere",
+        "option_c": "Ohm",
+        "option_d": "Watt",
+        "correct_option_index": 1,
+        "difficulty": "easy",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Mathematics",
+        "prompt": "If a triangle has side lengths 3 cm, 4 cm, and 5 cm, what is its area?",
+        "option_a": "6 cm²",
+        "option_b": "10 cm²",
+        "option_c": "12 cm²",
+        "option_d": "7.5 cm²",
+        "correct_option_index": 0,
+        "difficulty": "medium",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Chemistry",
+        "prompt": "Which gas is released when dilute hydrochloric acid reacts with zinc metal?",
+        "option_a": "Oxygen (O₂)",
+        "option_b": "Carbon Dioxide (CO₂)",
+        "option_c": "Hydrogen (H₂)",
+        "option_d": "Chlorine (Cl₂)",
+        "correct_option_index": 2,
+        "difficulty": "easy",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Physics",
+        "prompt": "What law states that for every action, there is an equal and opposite reaction?",
+        "option_a": "Newton's First Law",
+        "option_b": "Newton's Second Law",
+        "option_c": "Newton's Third Law",
+        "option_d": "Law of Conservation of Momentum",
+        "correct_option_index": 2,
+        "difficulty": "easy",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Computer Science",
+        "prompt": "What is the worst-case time complexity of standard Binary Search on a sorted array of n items?",
+        "option_a": "O(n)",
+        "option_b": "O(1)",
+        "option_c": "O(log n)",
+        "option_d": "O(n log n)",
+        "correct_option_index": 2,
+        "difficulty": "medium",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Mathematics",
+        "prompt": "What is the derivative of f(x) = x³ with respect to x?",
+        "option_a": "3x²",
+        "option_b": "x²",
+        "option_c": "3x",
+        "option_d": "x⁴/4",
+        "correct_option_index": 0,
+        "difficulty": "medium",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Chemistry",
+        "prompt": "What is the pH of a completely neutral aqueous solution at 25°C?",
+        "option_a": "0",
+        "option_b": "7",
+        "option_c": "14",
+        "option_d": "1",
+        "correct_option_index": 1,
+        "difficulty": "easy",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Biology",
+        "prompt": "Which organelle is known as the powerhouse of the eukaryotic cell?",
+        "option_a": "Ribosome",
+        "option_b": "Nucleus",
+        "option_c": "Mitochondria",
+        "option_d": "Endoplasmic Reticulum",
+        "correct_option_index": 2,
+        "difficulty": "easy",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+    {
+        "topic": "Physics",
+        "prompt": "What is the speed of light in a vacuum approximately equal to?",
+        "option_a": "3 × 10⁸ m/s",
+        "option_b": "3 × 10⁶ m/s",
+        "option_c": "3 × 10⁵ km/s",
+        "option_d": "Both A and C",
+        "correct_option_index": 3,
+        "difficulty": "hard",
+        "preview_coins": 15,
+        "preview_xp": 30,
+    },
+    {
+        "topic": "Mathematics",
+        "prompt": "If the roots of quadratic equation ax² + bx + c = 0 are real and equal, what is the discriminant (b² - 4ac)?",
+        "option_a": "b² - 4ac > 0",
+        "option_b": "b² - 4ac = 0",
+        "option_c": "b² - 4ac < 0",
+        "option_d": "b² - 4ac = 1",
+        "correct_option_index": 1,
+        "difficulty": "medium",
+        "preview_coins": 10,
+        "preview_xp": 20,
+    },
+]
+
+
+def ensure_quiz_questions_exist(db: Session) -> None:
+    """Seed sample quiz questions if none exist."""
+    count = db.query(models.QuizQuestion).count()
+    if count == 0:
+        for q_data in SAMPLE_QUIZ_QUESTIONS:
+            q = models.QuizQuestion(**q_data)
+            db.add(q)
+        db.commit()
+
+
+def ensure_active_battle_exists(db: Session) -> None:
+    """Ensure at least one active faction battle exists for live wars."""
+    from datetime import timedelta
+    now = datetime.now(timezone.utc)
+    active = (
+        db.query(models.FactionBattle)
+        .filter(
+            models.FactionBattle.status == models.BattleStatus.active,
+            models.FactionBattle.end_time >= now,
+        )
+        .first()
+    )
+    if not active:
+        battle = models.FactionBattle(
+            title="House Vidyut vs House Agni & Allies: STEM Showdown",
+            start_time=now - timedelta(hours=1),
+            end_time=now + timedelta(hours=23),
+            status=models.BattleStatus.active,
+        )
+        db.add(battle)
+        db.commit()
+        db.refresh(battle)
+
+        # Initialize scores for all factions
+        factions = db.query(models.Faction).all()
+        for f in factions:
+            existing_score = (
+                db.query(models.FactionBattleScore)
+                .filter_by(battle_id=battle.id, faction_id=f.id)
+                .first()
+            )
+            if not existing_score:
+                bs = models.FactionBattleScore(
+                    battle_id=battle.id,
+                    faction_id=f.id,
+                    total_xp=150 if "Vidyut" in f.name else (120 if "Agni" in f.name else 80),
+                    contributor_count=3 if "Vidyut" in f.name else 2,
+                )
+                db.add(bs)
+        db.commit()
+

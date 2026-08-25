@@ -65,6 +65,27 @@ class Settings(BaseSettings):
     BOUNTY_COMPLETION_XP: int = 50       # XP for completing a bounty
     NEW_USER_COINS: int = 100            # Starting wallet balance
 
+    # ── Anti-Gaming Safeguards ───────────────────────────────────────────────
+    QUESTION_MIN_COOLDOWN_SECONDS: float = 2.0    # Min seconds before answer accepted
+    DAILY_MAX_COINS: int = 500                     # Max coins earnable per day via quizzes
+    DAILY_MAX_XP: int = 1000                       # Max XP earnable per day via quizzes
+    CAP_EXCEEDED_POLICY: str = "reduced"            # "reject" | "zero" | "reduced"
+    CAP_REDUCTION_FACTOR: float = 0.25              # Multiplier when policy is "reduced"
+    ROLLING_WINDOW_SIZE: int = 20                   # Questions in rolling pattern window
+    Z_SCORE_FLAG_THRESHOLD: float = 2.5             # Z-score above which user is flagged
+
+    # ── Quiz Tuning ──────────────────────────────────────────────────────────
+    QUIZ_CORRECT_COINS: int = 10         # Coins per correct quiz answer
+    QUIZ_CORRECT_XP: int = 20            # XP per correct quiz answer
+    QUIZ_DEFAULT_SIZE: int = 10           # Default questions per quiz
+
+    # ── Faction Wars Tuning ──────────────────────────────────────────────────
+    FACTION_WAR_POLL_INTERVAL_SECONDS: int = 5
+    FACTION_WAR_LOSER_PARTICIPATION_COINS: int = 15
+    FACTION_WAR_LOSER_PARTICIPATION_XP: int = 25
+    FACTION_WAR_WINNER_BONUS_COINS: int = 50
+    FACTION_WAR_WINNER_BONUS_XP: int = 100
+
     # ── CORS ─────────────────────────────────────────────────────────────────
     CORS_ORIGINS: str = (
         "*,http://localhost:3000,http://localhost:5173,http://localhost:5500,"

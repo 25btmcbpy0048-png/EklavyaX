@@ -1,12 +1,3 @@
-"""
-app/api/routes/auth.py
-──────────────────────
-Authentication endpoints: register, login, and profile.
-
-POST /auth/register  – Create account, assign faction, init wallet/streak
-POST /auth/login     – Authenticate, return JWT
-GET  /auth/me        – Get current user profile (protected)
-"""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -32,7 +23,7 @@ from app.core.security import hash_password
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-# ── POST /auth/register ───────────────────────────────────────────────────────
+
 
 @router.post(
     "/register",
@@ -49,26 +40,26 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     4. Initialize Wallet (with starting coins) and Streak.
     5. Return JWT token + user data.
     """
-    # Check username uniqueness
+    
     if db.query(models.User).filter_by(username=payload.username).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username is already taken.",
         )
 
-    # Check email uniqueness
+
     if db.query(models.User).filter_by(email=payload.email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="An account with this email already exists.",
         )
 
-    # Assign faction (teachers and admins don't join factions)
+   
     faction: models.Faction | None = None
     if payload.role == "student":
         faction = assign_faction(db)
 
-    # Resolve default avatar if not explicitly set
+   
     avatar_url = payload.avatar_url
     if not avatar_url:
         is_female = payload.gender in ("female", "girl")
@@ -77,7 +68,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
         else:
             avatar_url = "assets/img/student_girl.jpg" if is_female else "assets/img/student_boy.jpg"
 
-    # Create user
+   
     user = models.User(
         username=payload.username,
         email=str(payload.email),
@@ -90,7 +81,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     db.add(user)
 
     try:
-        db.flush()  # Get the user.id without committing
+        db.flush()  
     except IntegrityError:
         db.rollback()
         raise HTTPException(
@@ -98,7 +89,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
             detail="Could not create account due to a conflict. Please try again.",
         )
 
-    # Initialize Wallet with starting coins
+   
     wallet = models.Wallet(
         user_id=user.id,
         balance=settings.NEW_USER_COINS,
@@ -106,7 +97,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     )
     db.add(wallet)
 
-    # Welcome transaction
+    
     welcome_tx = models.Transaction(
         user_id=user.id,
         amount=settings.NEW_USER_COINS,
@@ -115,14 +106,14 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     )
     db.add(welcome_tx)
 
-    # Initialize Streak
+    
     streak = models.Streak(user_id=user.id)
     db.add(streak)
 
     db.commit()
     db.refresh(user)
 
-    # Issue JWT
+   
     token = create_access_token(subject=user.id)
 
     return TokenResponse(
@@ -132,7 +123,7 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     )
 
 
-# ── POST /auth/login ──────────────────────────────────────────────────────────
+
 
 @router.post(
     "/login",
@@ -144,7 +135,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
     Authenticate a user and return a JWT access token.
     Accepts either username or email in the `username` field.
     """
-    # Try username first, then email
+    
     user = (
         db.query(models.User).filter_by(username=payload.username).first()
         or db.query(models.User).filter_by(email=payload.username).first()
@@ -157,7 +148,6 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    # Auto-resolve avatar_url if missing
     if not user.avatar_url:
         is_female = user.gender in ("female", "girl")
         if user.role == models.UserRole.teacher:
@@ -176,7 +166,7 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
     )
 
 
-# ── GET /auth/me ──────────────────────────────────────────────────────────────
+
 
 @router.get(
     "/me",
@@ -196,7 +186,7 @@ def get_me(current_user: models.User = Depends(get_current_user), db: Session = 
     return UserResponse.model_validate(current_user)
 
 
-# ── GET /auth/me/streak ───────────────────────────────────────────────────────
+
 
 @router.get(
     "/me/streak",
@@ -214,7 +204,7 @@ def get_my_streak(
     return StreakResponse.model_validate(streak)
 
 
-# ── POST /auth/me/activity ────────────────────────────────────────────────────
+
 
 @router.post(
     "/me/activity",
@@ -230,7 +220,7 @@ def record_activity(
     """
     streak = update_streak(db, current_user.id)
 
-    # Award streak bonus only if streak was just extended (not if already logged today)
+   
     coins_awarded = 0
     xp_awarded = 0
     if streak.last_activity_date is not None:
@@ -254,7 +244,7 @@ def record_activity(
     }
 
 
-# ── PUT /auth/me ──────────────────────────────────────────────────────────────
+
 
 @router.put(
     "/me",
@@ -267,7 +257,7 @@ def update_me(
     db: Session = Depends(get_db),
 ):
     """Update profile details (name, email, avatar, phone, bio, etc.) for the current user."""
-    # If username changed, check uniqueness
+    
     if payload.username and payload.username.strip() and payload.username != current_user.username:
         new_username = payload.username.strip()
         existing = (
@@ -282,7 +272,7 @@ def update_me(
             )
         current_user.username = new_username
 
-    # If email changed, check uniqueness
+   
     if payload.email and str(payload.email) != current_user.email:
         new_email = str(payload.email).strip().lower()
         existing = (
@@ -319,7 +309,7 @@ def update_me(
     return UserResponse.model_validate(current_user)
 
 
-# ── POST /auth/change-password ────────────────────────────────────────────────
+
 
 @router.post(
     "/change-password",

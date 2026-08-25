@@ -1,8 +1,3 @@
-"""
-app/schemas/bounty_sch.py
-─────────────────────────
-Pydantic schemas for the Teacher Bounty Board feature.
-"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,7 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-# ── Input Schemas ─────────────────────────────────────────────────────────────
+
 
 class BountyCreate(BaseModel):
     """Payload for a teacher creating a new bounty."""
@@ -30,8 +25,6 @@ class BountyApproval(BaseModel):
         None, ge=0, le=100, description="Score percentage (0-100), optional"
     )
 
-
-# ── Output Schemas ────────────────────────────────────────────────────────────
 
 class BountyResponse(BaseModel):
     """Bounty data returned to clients."""

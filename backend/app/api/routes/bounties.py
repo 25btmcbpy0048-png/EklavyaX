@@ -1,14 +1,3 @@
-"""
-app/api/routes/bounties.py
-──────────────────────────
-Teacher Bounty Board endpoints.
-
-POST /bounties                          – Teacher: create a bounty
-GET  /bounties                          – Anyone: list active bounties
-POST /bounties/{bounty_id}/submit       – Student: submit completion claim
-POST /bounties/{bounty_id}/approve      – Teacher: approve/reject a submission
-GET  /bounties/{bounty_id}/submissions  – Teacher: view all submissions for a bounty
-"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -31,7 +20,7 @@ from app.services.game_logic import earn_coins_and_xp, update_faction_score, upd
 router = APIRouter(prefix="/bounties", tags=["Bounty Board"])
 
 
-# ── POST /bounties ─────────────────────────────────────────────────────────────
+
 
 @router.post(
     "",
@@ -69,7 +58,7 @@ def create_bounty(
     return BountyResponse.model_validate(bounty)
 
 
-# ── GET /bounties ──────────────────────────────────────────────────────────────
+
 
 @router.get(
     "",
@@ -101,7 +90,7 @@ def list_bounties(
     return [BountyResponse.model_validate(b) for b in bounties]
 
 
-# ── POST /bounties/{bounty_id}/submit ─────────────────────────────────────────
+
 
 @router.post(
     "/{bounty_id}/submit",
@@ -135,7 +124,7 @@ def submit_bounty(
             detail="The deadline for this bounty has passed.",
         )
 
-    # Check for duplicate submission
+    
     existing = (
         db.query(models.BountySubmission)
         .filter_by(bounty_id=bounty_id, student_id=current_user.id)
@@ -158,7 +147,7 @@ def submit_bounty(
     return BountySubmissionResponse.model_validate(submission)
 
 
-# ── POST /bounties/{bounty_id}/approve ────────────────────────────────────────
+
 
 @router.post(
     "/{bounty_id}/approve",
@@ -181,7 +170,7 @@ def approve_submission(
     - Update the student's streak.
     - Mark submission as approved.
     """
-    # Verify bounty ownership
+   
     bounty = db.get(models.Bounty, bounty_id)
     if not bounty:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bounty not found.")
@@ -192,7 +181,7 @@ def approve_submission(
             detail="You can only manage your own bounties.",
         )
 
-    # Fetch the submission
+ 
     submission = db.get(models.BountySubmission, payload.submission_id)
     if not submission or submission.bounty_id != bounty_id:
         raise HTTPException(
@@ -210,26 +199,24 @@ def approve_submission(
     submission.score = payload.score
 
     if payload.is_approved:
-        # Award coins and XP
+        
         earn_coins_and_xp(
             db,
             submission.student_id,
             coins=bounty.reward_coins,
-            xp=50,  # settings.BOUNTY_COMPLETION_XP
+            xp=50,  
             reason="bounty_reward",
         )
-        # Update streak
+       
         try:
             update_streak(db, submission.student_id)
         except Exception:
-            pass  # Non-critical if streak update fails
+            pass  
 
     db.commit()
     db.refresh(submission)
     return BountySubmissionResponse.model_validate(submission)
 
-
-# ── GET /bounties/{bounty_id}/submissions ─────────────────────────────────────
 
 @router.get(
     "/{bounty_id}/submissions",

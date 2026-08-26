@@ -1,26 +1,13 @@
-"""
-migrate_sqlite_to_postgres.py
-─────────────────────────────
-Utility to migrate all existing data from local SQLite database (eklavyax.db)
-into a PostgreSQL database.
-
-Usage:
-    cd backend
-    python migrate_sqlite_to_postgres.py
-"""
-
 import os
 import sys
 from pathlib import Path
 
-# Ensure UTF-8 output on Windows consoles
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import sessionmaker
 
-# Add backend directory to sys.path
 BASE_DIR = Path(__file__).resolve().parent
 sys.path.insert(0, str(BASE_DIR))
 
@@ -51,11 +38,9 @@ def migrate():
         print("[SUCCESS] PostgreSQL tables created successfully!")
         return
 
-    # Engines and sessions
     sqlite_engine = create_engine(SQLITE_URL)
     pg_engine = create_engine(PG_URL)
 
-    # 1. Cleanly recreate tables in PostgreSQL to match current schema
     print("[INFO] Recreating clean tables in PostgreSQL...")
     Base.metadata.drop_all(bind=pg_engine)
     Base.metadata.create_all(bind=pg_engine)
@@ -88,7 +73,6 @@ def migrate():
                 pg_db.merge(row)
             pg_db.commit()
 
-        # Update Postgres sequence values for auto-incrementing primary keys
         print("[INFO] Updating PostgreSQL auto-increment sequences...")
         with pg_engine.connect() as conn:
             for _, table_name in tables:

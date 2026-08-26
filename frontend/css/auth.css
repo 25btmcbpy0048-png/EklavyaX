@@ -1,9 +1,3 @@
-/* =========================================================
-   EklavyaX — AUTH SCREEN (sliding "blade" login/signup)
-   Built from the existing --main-bg / --card-bg / --accent-gold
-   design tokens in global.css — no new colours introduced.
-   ========================================================= */
-
 .auth-shell {
   width: 100%;
   max-width: 980px;
@@ -12,7 +6,6 @@
   flex-direction: column;
   align-items: center;
 }
-
 .auth-shell__eyebrow {
   color: var(--accent-gold, #f4ae25);
   letter-spacing: 0.22em;
@@ -30,7 +23,6 @@
   margin: 0 0 28px;
 }
 
-/* ---------- Card ---------- */
 
 .auth-card {
   position: relative;
@@ -48,8 +40,7 @@
   min-height: 740px;
 }
 
-/* The diagonal "blade" panel — carries the welcome copy and sweeps
-   from one half of the card to the other when the mode toggles. */
+
 .auth-blade {
   position: absolute;
   top: 0;
@@ -129,7 +120,6 @@
   filter: brightness(1.1);
 }
 
-/* ---------- Form area ---------- */
 
 .auth-forms {
   position: absolute;
@@ -331,7 +321,7 @@
   display: block;
 }
 
-/* ---------- Role Switcher Badges ---------- */
+
 .role-switcher-badge {
   display: inline-flex;
   align-items: center;
@@ -421,7 +411,7 @@
   color: var(--accent-gold, #f4ae25);
 }
 
-/* ---------- Responsive ---------- */
+
 
 @media (max-width: 860px) {
   .auth-card {

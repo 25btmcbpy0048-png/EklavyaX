@@ -1,8 +1,3 @@
-"""
-app/main.py
-───────────
-FastAPI application factory for the Synapse Backend (EklavyaX).
-"""
 from __future__ import annotations
 
 import logging
@@ -17,8 +12,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 
-# The ../frontend folder that ships alongside this backend. Mounted below so
-# `uvicorn app.main:app` serves the whole app (API + UI) from one process/port.
+
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend"
 
 logger = logging.getLogger(__name__)
@@ -28,7 +22,7 @@ logging.basicConfig(
 )
 
 
-# ── Redis (optional) ──────────────────────────────────────────────────────────
+
 
 _redis_client = None
 
@@ -67,7 +61,7 @@ def get_redis():
     return _redis_client
 
 
-# ── Lifespan (startup / shutdown) ─────────────────────────────────────────────
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator:
@@ -75,7 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     logger.info("🚀 EklavyaX Synapse Backend starting up...")
 
-    # Create all database tables
+  
     from app.db.database import Base, engine
     from app.db import models  # noqa: F401
 
@@ -83,7 +77,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
 
     logger.info("✅ Database tables ensured.")
 
-    # Ensure optional user profile columns exist on existing databases
+   
     from sqlalchemy import text
 
     columns_to_ensure = [
@@ -110,7 +104,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             except Exception:
                 con.rollback()
 
-    # Seed default factions, quiz questions, and active battle
+    
     from app.db.database import SessionLocal
     from app.services.game_logic import (
         ensure_active_battle_exists,
@@ -132,14 +126,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     finally:
         db.close()
 
-    # Initialize Redis (optional)
+   
     await _init_redis()
 
     logger.info(
         "🎮 Synapse Backend is ready. Docs: http://localhost:8000/docs"
     )
 
-    # AI provider logging
+   
     if settings.AI_PROVIDER.lower() == "groq":
 
         logger.info(
@@ -206,17 +200,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
             settings.AI_PROVIDER,
         )
 
-    # Application runs here
+  
     yield
 
-    # Shutdown
+   
     if _redis_client:
         await _redis_client.aclose()
 
     logger.info("👋 Synapse Backend shut down gracefully.")
 
 
-# ── FastAPI App ───────────────────────────────────────────────────────────────
+
 
 app = FastAPI(
     title=settings.APP_TITLE,
@@ -234,19 +228,7 @@ app = FastAPI(
 )
 
 
-# ── CORS Middleware ───────────────────────────────────────────────────────────
-#
-# IMPORTANT:
-# The frontend is deployed on Vercel:
-#
-#     https://eklavya-x.vercel.app
-#
-# The backend is deployed on Render.
-#
-#     https://eklavya.onrender.com
-#
-# Therefore the Vercel origin MUST be explicitly allowed here.
-#
+
 
 try:
     configured_origins = settings.get_cors_origins()
@@ -263,11 +245,11 @@ if isinstance(configured_origins, str):
 
 cors_origins = list(configured_origins)
 
-# Production frontend
+
 if "https://eklavya-x.vercel.app" not in cors_origins:
     cors_origins.append("https://eklavya-x.vercel.app")
 
-# Local development
+
 for local_origin in [
     "http://localhost:5500",
     "http://127.0.0.1:5500",
@@ -288,7 +270,7 @@ app.add_middleware(
 )
 
 
-# ── Global Exception Handlers ─────────────────────────────────────────────────
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(
@@ -314,7 +296,7 @@ async def global_exception_handler(
     )
 
 
-# ── API Routers ───────────────────────────────────────────────────────────────
+
 
 from app.api.routes import auth, bounties, economy, faction_wars, quiz, tutor  # noqa: E402
 
@@ -326,7 +308,7 @@ app.include_router(quiz.router)
 app.include_router(tutor.router)
 
 
-# ── Root Endpoint ─────────────────────────────────────────────────────────────
+
 
 @app.get(
     "/api/status",
@@ -376,15 +358,7 @@ async def health_check():
     return checks
 
 
-# ── Static Frontend ───────────────────────────────────────────────────────────
-#
-# Mounted LAST so it never shadows API routes above.
-#
-# Starlette matches routes in registration order.
-#
-# Serves the plain HTML/CSS/JS frontend and allows the app to run from one
-# process/port during local development.
-#
+
 
 if FRONTEND_DIR.is_dir():
 

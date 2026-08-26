@@ -1,12 +1,3 @@
-"""
-app/api/routes/faction_wars.py
-──────────────────────────────
-Faction Wars battle endpoints for live score aggregation, polling, and rewards.
-
-GET  /faction-wars/battle/active            – Live battle status & score polling (5-10s)
-GET  /faction-wars/battle/{id}/leaderboard  – Contribution leaderboard for user's faction
-POST /faction-wars/battle/{id}/finalize     – Finalize battle and distribute winner bonus & participation rewards
-"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -38,9 +29,6 @@ from app.services.safeguards import ensure_utc
 router = APIRouter(prefix="/faction-wars", tags=["Faction Wars"])
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /faction-wars/battle/active
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/battle/active",
@@ -86,7 +74,7 @@ def get_active_battle(
             next_battle_start=next_battle.start_time if next_battle else None,
         )
 
-    # Gather scores
+   
     all_factions = db.query(models.Faction).all()
     scores_dict = {
         s.faction_id: s for s in db.query(models.FactionBattleScore).filter_by(battle_id=battle.id).all()
@@ -105,7 +93,7 @@ def get_active_battle(
             )
         )
 
-    # Sort scores descending
+   
     faction_scores.sort(key=lambda s: s.total_xp, reverse=True)
 
     end_utc = ensure_utc(battle.end_time)
@@ -123,9 +111,6 @@ def get_active_battle(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /faction-wars/battle/{battle_id}/leaderboard
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/battle/{battle_id}/leaderboard",
@@ -185,9 +170,6 @@ def get_battle_leaderboard(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /faction-wars/battle/{battle_id}/finalize
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.post(
     "/battle/{battle_id}/finalize",
@@ -230,7 +212,7 @@ def finalize_battle(
     winning_faction_id = None if is_draw or not scores else scores[0].faction_id
     winning_faction = db.get(models.Faction, winning_faction_id) if winning_faction_id else None
 
-    # Distribute rewards to all contributors
+    
     all_contributions = (
         db.query(models.FactionBattleContribution)
         .filter_by(battle_id=battle_id)
@@ -292,9 +274,6 @@ def finalize_battle(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /faction-wars/factions
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/factions",
@@ -314,7 +293,7 @@ def get_all_factions(
 
     factions = db.query(models.Faction).all()
 
-    # Lore dictionary
+  
     HOUSE_META = {
         "House Vidyut": {
             "motto": "Igniting the spark of genius through swift intellect.",
@@ -346,7 +325,6 @@ def get_all_factions(
         },
     }
 
-    # Find active battle if any to get live battle points
     now = datetime.now(timezone.utc)
     active_battle = (
         db.query(models.FactionBattle)
@@ -368,10 +346,10 @@ def get_all_factions(
             "icon": "fa-shield-alt",
         })
 
-        # Member count
+    
         member_count = db.query(models.User).filter_by(faction_id=f.id).count()
 
-        # Top 3 champions in this faction by overall wallet XP
+      
         top_users = (
             db.query(models.User)
             .join(models.Wallet, models.Wallet.user_id == models.User.id)
@@ -411,14 +389,10 @@ def get_all_factions(
             )
         )
 
-    # Sort descending by all-time score
+   
     result.sort(key=lambda x: x.score, reverse=True)
     return result
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /faction-wars/history
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/history",
@@ -478,10 +452,6 @@ def get_battle_history(
     return BattleHistoryResponse(battles=items)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /faction-wars/battle/start-new
-# ─────────────────────────────────────────────────────────────────────────────
-
 @router.post(
     "/battle/start-new",
     response_model=ActiveBattleResponse,
@@ -498,7 +468,7 @@ def start_new_battle(
     from datetime import timedelta
     now = datetime.now(timezone.utc)
 
-    # Check for existing active battle
+    
     existing = (
         db.query(models.FactionBattle)
         .filter(
@@ -511,7 +481,7 @@ def start_new_battle(
     if existing:
         return get_active_battle(current_user=current_user, db=db)
 
-    # Create new 24h battle
+    
     battle = models.FactionBattle(
         title="House Vidyut vs House Agni & Allies: Grand STEM Showdown",
         start_time=now,
@@ -522,7 +492,7 @@ def start_new_battle(
     db.commit()
     db.refresh(battle)
 
-    # Seed initial battle scores for each house
+
     factions = db.query(models.Faction).all()
     for f in factions:
         bs = models.FactionBattleScore(

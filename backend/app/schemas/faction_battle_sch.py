@@ -1,8 +1,3 @@
-"""
-app/schemas/faction_battle_sch.py
-──────────────────────────────────
-Pydantic schemas for the Faction Wars battle system.
-"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -11,7 +6,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-# ── Battle Status Polling ─────────────────────────────────────────────────────
+
 
 class FactionScoreResponse(BaseModel):
     """Score for a single faction in a battle."""
@@ -41,7 +36,7 @@ class NoBattleResponse(BaseModel):
     next_battle_start: Optional[datetime] = None
 
 
-# ── Contribution Leaderboard ──────────────────────────────────────────────────
+
 
 class ContributionEntry(BaseModel):
     """Individual contributor rank entry."""
@@ -60,7 +55,6 @@ class BattleLeaderboardResponse(BaseModel):
     entries: List[ContributionEntry]
 
 
-# ── Battle End / Finalize ─────────────────────────────────────────────────────
 
 class BattleEndResponse(BaseModel):
     """Response after a battle is finalized."""
@@ -76,7 +70,7 @@ class BattleEndResponse(BaseModel):
     loser_participation_xp: int
 
 
-# ── Factions & House Lore ─────────────────────────────────────────────────────
+
 
 class FactionChampion(BaseModel):
     user_id: int
@@ -99,7 +93,6 @@ class FactionDetailResponse(BaseModel):
     top_champions: List[FactionChampion] = []
 
 
-# ── Battle History Archive ────────────────────────────────────────────────────
 
 class BattleHistoryItem(BaseModel):
     battle_id: int

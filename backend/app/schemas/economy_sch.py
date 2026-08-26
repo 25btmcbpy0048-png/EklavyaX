@@ -1,8 +1,3 @@
-"""
-app/schemas/economy_sch.py
-──────────────────────────
-Pydantic schemas for the virtual economy, challenges, and leaderboard.
-"""
 from __future__ import annotations
 
 from datetime import datetime
@@ -12,7 +7,7 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-# ── Wallet ────────────────────────────────────────────────────────────────────
+
 
 class WalletResponse(BaseModel):
     user_id: int
@@ -22,7 +17,7 @@ class WalletResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Transaction ───────────────────────────────────────────────────────────────
+
 
 class TransactionResponse(BaseModel):
     id: int
@@ -35,7 +30,7 @@ class TransactionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-# ── Internal earn/spend ───────────────────────────────────────────────────────
+
 
 class EarnRequest(BaseModel):
     """Internal: add coins/XP to wallet."""
@@ -50,7 +45,7 @@ class SpendRequest(BaseModel):
     reason: str = Field(..., max_length=100)
 
 
-# ── Challenges ────────────────────────────────────────────────────────────────
+
 
 class ChallengeStatus(str, Enum):
     pending = "pending"
@@ -85,7 +80,7 @@ class ChallengeSubmitResult(BaseModel):
     winner_id: int = Field(..., description="User ID of the winner")
 
 
-# ── Leaderboard ───────────────────────────────────────────────────────────────
+
 
 class LeaderboardEntry(BaseModel):
     rank: int

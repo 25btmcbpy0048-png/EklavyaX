@@ -1,12 +1,3 @@
-"""
-app/services/ai_service.py
-──────────────────────────
-Gravity.ai – the AI explanation microservice engine.
-
-Supports OpenRouter, Google Gemini, and OpenAI as interchangeable backends.
-Prompt engineering ensures the AI acts as an empathetic tutor, NOT
-a direct answer machine. All API calls are made via httpx.
-"""
 from __future__ import annotations
 
 import logging
@@ -19,7 +10,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# ── Prompt Engineering ────────────────────────────────────────────────────────
+
 
 SYSTEM_PROMPT_TEMPLATE = """You are Gravity, an expert, encouraging, and highly effective STEM AI tutor on the EklavyaX learning platform.
 
@@ -171,9 +162,7 @@ async def _call_groq(prompt: str) -> str:
     )
 
 
-# ── Provider: OpenRouter ──────────────────────────────────────────────────────
 
-# ── Fallback candidate models for OpenRouter free tier ────────────────────────
 OPENROUTER_FALLBACK_MODELS = [
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-3-nano-30b-a3b:free",
@@ -280,7 +269,6 @@ async def _call_openrouter(prompt: str) -> str:
     )
 
 
-# ── Provider: Google Gemini ───────────────────────────────────────────────────
 
 async def _call_gemini(prompt: str) -> str:
     """
@@ -349,7 +337,7 @@ async def _call_gemini(prompt: str) -> str:
         )
 
 
-# ── Provider: OpenAI ─────────────────────────────────────────────────────────
+
 
 async def _call_openai(prompt: str) -> str:
     """
@@ -424,7 +412,7 @@ async def get_explanation(highlighted_text: str, target_language: str = "Simple 
 
     provider = settings.AI_PROVIDER.lower()
 
-    # Determine provider execution order
+
     provider_order = [provider]
     if provider != "groq" and settings.GROQ_API_KEY:
         provider_order.append("groq")
@@ -466,9 +454,6 @@ async def get_explanation(highlighted_text: str, target_language: str = "Simple 
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# AI Quiz Question Generator
-# ─────────────────────────────────────────────────────────────────────────────
 
 QUIZ_GEN_PROMPT_TEMPLATE = """You are an expert STEM exam & quiz creator for secondary/higher-secondary students.
 Generate exactly {num_questions} multiple-choice questions on the topic: "{topic}".
@@ -507,7 +492,7 @@ async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 5
 
     raw_response = await get_explanation(prompt)
 
-    # Clean markdown if present
+
     cleaned = raw_response.strip()
     if cleaned.startswith("```json"):
         cleaned = cleaned[7:]
@@ -517,7 +502,6 @@ async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 5
         cleaned = cleaned[:-3]
     cleaned = cleaned.strip()
 
-    # Extract JSON array
     match = re.search(r"\[\s*\{.*\}\s*\]", cleaned, re.DOTALL)
     if match:
         cleaned = match.group(0)

@@ -1,19 +1,3 @@
-"""
-app/services/safeguards.py
-──────────────────────────
-Anti-gaming validation pipeline for EklavyaX.
-
-All functions accept a SQLAlchemy Session and operate on ORM objects.
-The pipeline runs in strict order:
-  1. validate_server_answer
-  2. check_question_cooldown
-  3. check_and_apply_daily_cap
-  4. grant_safeguarded_reward (calls earn_coins_and_xp + writes audit log)
-  5. evaluate_suspicious_patterns (async-friendly, non-blocking)
-
-Every path writes to RewardAuditLog – no silent grants or silent rejections.
-On internal error, the pipeline fails SAFE (rejects reward, logs the error).
-"""
 from __future__ import annotations
 
 import logging
@@ -32,9 +16,7 @@ from app.services.game_logic import earn_coins_and_xp
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. Option shuffling
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def generate_shuffled_options(
     question: models.QuizQuestion,
@@ -73,9 +55,6 @@ def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
     return dt.astimezone(timezone.utc)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. Server-side answer validation
-# ─────────────────────────────────────────────────────────────────────────────
 
 def validate_server_answer(
     session: models.QuizSession,
@@ -97,9 +76,7 @@ def validate_server_answer(
     return canonical_index == session.question.correct_option_index
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. Cooldown check
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def check_question_cooldown(
     session: models.QuizSession,
@@ -123,9 +100,6 @@ def check_question_cooldown(
     return None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 4. Daily / session earn caps
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _get_today_earned(db: Session, user_id: int) -> Tuple[int, int]:
     """
@@ -188,9 +162,6 @@ def check_and_apply_daily_cap(
         return adj_coins, adj_xp, detail
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. Audit log writer
-# ─────────────────────────────────────────────────────────────────────────────
 
 def _write_audit_log(
     db: Session,
@@ -216,9 +187,7 @@ def _write_audit_log(
     return log
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 6. Suspicious pattern evaluation (non-blocking)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def evaluate_suspicious_patterns(
     db: Session,
@@ -235,7 +204,7 @@ def evaluate_suspicious_patterns(
     Returns True if the user was flagged.
     """
     try:
-        # Record the new data point
+
         metric = models.UserResponseMetric(
             user_id=user_id,
             question_id=question_id,
@@ -245,7 +214,6 @@ def evaluate_suspicious_patterns(
         db.add(metric)
         db.flush()
 
-        # Retrieve the last N metrics for this user
         window = settings.ROLLING_WINDOW_SIZE
         recent = (
             db.query(models.UserResponseMetric)
@@ -256,14 +224,14 @@ def evaluate_suspicious_patterns(
         )
 
         if len(recent) < 5:
-            # Not enough data to compute meaningful stats
+            
             return False
 
         times = [m.response_time_ms for m in recent]
         correct_count = sum(1 for m in recent if m.is_correct)
         accuracy = correct_count / len(recent)
 
-        # Response-time z-score
+        
         mean_time = sum(times) / len(times)
         if len(times) > 1:
             variance = sum((t - mean_time) ** 2 for t in times) / (len(times) - 1)
@@ -272,9 +240,9 @@ def evaluate_suspicious_patterns(
             std_time = 1.0
 
         z_speed = (mean_time - response_time_ms) / std_time if std_time > 0 else 0
-        # Positive z_speed means this answer was faster than average
+       
 
-        # Flag if: very fast AND very accurate (bot-like)
+       
         threshold = settings.Z_SCORE_FLAG_THRESHOLD
         flagged = z_speed > threshold and accuracy > 0.9
 
@@ -305,9 +273,7 @@ def evaluate_suspicious_patterns(
         return False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 7. Battle contribution helper
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _update_battle_contribution(
     db: Session,
@@ -336,7 +302,6 @@ def _update_battle_contribution(
     if not battle:
         return
 
-    # Faction score row (upsert-like)
     fscore = (
         db.query(models.FactionBattleScore)
         .filter_by(battle_id=battle.id, faction_id=faction_id)
@@ -354,9 +319,9 @@ def _update_battle_contribution(
         db.query(func.count(models.FactionBattleContribution.id))
         .filter_by(battle_id=battle.id, faction_id=faction_id)
         .scalar() or 0
-    ) + 1  # Will be corrected below if user already exists
+    ) + 1  
 
-    # User contribution (upsert-like)
+
     contrib = (
         db.query(models.FactionBattleContribution)
         .filter_by(battle_id=battle.id, user_id=user_id)
@@ -381,9 +346,7 @@ def _update_battle_contribution(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# 8. Main safeguarded reward pipeline
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def grant_safeguarded_reward(
     db: Session,
@@ -410,7 +373,7 @@ def grant_safeguarded_reward(
     question_id_str = str(question.id)
 
     try:
-        # ── Step 1: Server-side answer validation ────────────────────────────
+        
         is_correct = validate_server_answer(session, selected_shuffled_index)
         session.selected_option_index = selected_shuffled_index
         session.submitted_at = now
@@ -435,7 +398,7 @@ def grant_safeguarded_reward(
                 "detail": "Incorrect answer",
             }
 
-        # ── Step 2: Cooldown check ───────────────────────────────────────────
+ 
         cooldown_detail = check_question_cooldown(session, now)
         if cooldown_detail:
             _write_audit_log(
@@ -456,7 +419,7 @@ def grant_safeguarded_reward(
                 "detail": cooldown_detail,
             }
 
-        # ── Step 3: Daily cap ────────────────────────────────────────────────
+        
         requested_coins = question.preview_coins
         requested_xp = question.preview_xp
         adj_coins, adj_xp, cap_detail = check_and_apply_daily_cap(
@@ -482,7 +445,7 @@ def grant_safeguarded_reward(
                 "detail": cap_detail,
             }
 
-        # ── Step 4: Grant reward ─────────────────────────────────────────────
+      
         wallet = earn_coins_and_xp(
             db, user_id,
             coins=adj_coins,
@@ -494,20 +457,20 @@ def grant_safeguarded_reward(
             db, user_id, question_id_str,
             coins=adj_coins, xp=adj_xp,
             reason_code=models.ReasonCode.granted,
-            details=cap_detail,  # Will be None if no cap hit
+            details=cap_detail, 
         )
 
         session.coins_awarded = adj_coins
         session.xp_awarded = adj_xp
 
-        # Credit faction battle if active
+      
         user = db.get(models.User, user_id)
         if user and user.faction_id:
             _update_battle_contribution(db, user_id, user.faction_id, adj_xp)
 
         db.commit()
 
-        # ── Step 5: Pattern check (non-blocking) ────────────────────────────
+      
         t_show = ensure_utc(session.question_shown_at)
         elapsed_ms = int((now - t_show).total_seconds() * 1000) if t_show else 0
         try:
@@ -530,7 +493,7 @@ def grant_safeguarded_reward(
         }
 
     except Exception as exc:
-        # ── Fail-safe: reject reward on any error ────────────────────────────
+       
         logger.error("Safeguard pipeline error for user %d: %s", user_id, exc)
         try:
             _write_audit_log(

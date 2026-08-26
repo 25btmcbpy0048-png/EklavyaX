@@ -1,19 +1,3 @@
-"""
-app/api/routes/economy.py
-─────────────────────────
-Virtual economy, wallet, challenges, and leaderboard endpoints.
-
-GET  /economy/wallet                – Current user's wallet
-GET  /economy/transactions          – Current user's transaction history
-POST /economy/earn                  – Earn coins/XP (internal/admin)
-POST /economy/spend                 – Spend coins (internal/admin)
-POST /challenges                    – Create a peer challenge
-POST /challenges/{id}/accept        – Opponent accepts a challenge
-POST /challenges/{id}/submit        – Submit challenge result + determine winner
-GET  /challenges                    – List current user's challenges
-GET  /leaderboard/class             – Top 10 by XP
-GET  /leaderboard/faction           – Faction standings
-"""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -50,7 +34,6 @@ from app.services.game_logic import (
 router = APIRouter(tags=["Economy & Challenges"])
 
 
-# ── Wallet ────────────────────────────────────────────────────────────────────
 
 @router.get(
     "/economy/wallet",
@@ -90,7 +73,6 @@ def get_transactions(
     return [TransactionResponse.model_validate(t) for t in txs]
 
 
-# ── Internal earn / spend ─────────────────────────────────────────────────────
 
 @router.post(
     "/economy/earn",
@@ -153,7 +135,6 @@ def spend(
     return WalletResponse.model_validate(wallet)
 
 
-# ── Challenges ────────────────────────────────────────────────────────────────
 
 @router.post(
     "/challenges",
@@ -170,7 +151,7 @@ def create_challenge(
     Create a 1v1 challenge with an optional EduCoin wager.
     Wager is deducted immediately from the challenger's wallet.
     """
-    # Validate wager against wallet
+   
     if payload.wager_coins > 0:
         wallet = db.query(models.Wallet).filter_by(user_id=current_user.id).first()
         if not wallet or wallet.balance < payload.wager_coins:
@@ -180,7 +161,7 @@ def create_challenge(
             )
         spend_coins(db, current_user.id, coins=payload.wager_coins, reason="challenge_wager")
 
-    # Validate opponent exists
+ 
     if payload.opponent_id is not None:
         opponent = db.get(models.User, payload.opponent_id)
         if not opponent:
@@ -231,7 +212,6 @@ def accept_challenge(
             detail=f"Challenge is already in '{challenge.status.value}' status.",
         )
 
-    # Validate this user is the correct opponent (or challenge is open)
     if challenge.opponent_id is not None and challenge.opponent_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -244,11 +224,10 @@ def accept_challenge(
             detail="You cannot accept your own challenge.",
         )
 
-    # For open challenges, assign this user as the opponent
+   
     if challenge.opponent_id is None:
         challenge.opponent_id = current_user.id
 
-    # Deduct opponent's wager
     if challenge.wager_coins > 0:
         spend_coins(
             db, current_user.id, coins=challenge.wager_coins, reason="challenge_wager"
@@ -282,7 +261,7 @@ def submit_challenge_result(
     if not challenge:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Challenge not found.")
 
-    # Only participants can submit results (or admin)
+
     if current_user.role != models.UserRole.admin and current_user.id not in {
         challenge.challenger_id, challenge.opponent_id
     }:
@@ -327,7 +306,7 @@ def list_challenges(
     return [ChallengeResponse.model_validate(c) for c in challenges]
 
 
-# ── Leaderboards ──────────────────────────────────────────────────────────────
+
 
 @router.get(
     "/leaderboard/class",

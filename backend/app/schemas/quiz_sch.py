@@ -23,7 +23,7 @@ class QuizQuestionResponse(BaseModel):
     options: List[str]            
     preview_coins: int
     preview_xp: int
-    question_shown_at: datetime   c
+    question_shown_at: datetime
     topic: str
     difficulty: str
 

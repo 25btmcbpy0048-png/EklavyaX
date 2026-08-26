@@ -6,7 +6,6 @@
   flex-direction: column;
   align-items: center;
 }
-
 .auth-shell__eyebrow {
   color: var(--accent-gold, #f4ae25);
   letter-spacing: 0.22em;

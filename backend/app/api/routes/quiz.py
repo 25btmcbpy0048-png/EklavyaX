@@ -234,16 +234,24 @@ def submit_answer(
             else:
                 streak = 0
 
-    # Determine correct option index in the shuffled list
+    # Determine correct option index in the shuffled list and resolve explanation
     perm = str_to_permutation(session.shuffled_order)
     canonical_correct = session.question.correct_option_index
     shuffled_correct_index = perm.index(canonical_correct) if canonical_correct in perm else 0
+    canonical_options = session.question.get_canonical_options()
+    correct_option_text = canonical_options[canonical_correct] if 0 <= canonical_correct < len(canonical_options) else ""
+
+    explanation = session.question.explanation
+    if not explanation:
+        explanation = f"The correct answer is '{correct_option_text}'."
 
     wallet = db.query(models.Wallet).filter_by(user_id=current_user.id).first()
 
     return QuizSubmitResponse(
         is_correct=result["is_correct"],
         correct_option_index=shuffled_correct_index,
+        correct_option_text=correct_option_text,
+        explanation=explanation,
         coins_awarded=result["coins_awarded"],
         xp_awarded=result["xp_awarded"],
         preview_coins=session.question.preview_coins,

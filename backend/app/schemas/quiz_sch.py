@@ -53,6 +53,8 @@ class QuizSubmitResponse(BaseModel):
     """Server response after answer submission (correctness from server only)."""
     is_correct: bool
     correct_option_index: int      # In shuffled order, for client feedback
+    correct_option_text: Optional[str] = None # Exact text of the correct option
+    explanation: Optional[str] = None         # Detailed conceptual explanation
     coins_awarded: int
     xp_awarded: int
     preview_coins: int

@@ -419,6 +419,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "easy",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "The Ampere (A) is the base SI unit of electric current, defined by the rate of flow of electric charge (1 Coulomb per second). Volt measures electric potential, Ohm measures resistance, and Watt measures power.",
     },
     {
         "topic": "Mathematics",
@@ -431,6 +432,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "medium",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "The sides (3, 4, 5) satisfy the Pythagorean theorem (3² + 4² = 9 + 16 = 25 = 5²), confirming it is a right-angled triangle with base = 4 cm and height = 3 cm. Area = 1/2 × base × height = 1/2 × 4 × 3 = 6 cm².",
     },
     {
         "topic": "Chemistry",
@@ -443,6 +445,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "easy",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "When zinc metal reacts with dilute hydrochloric acid, single displacement occurs: Zn (s) + 2HCl (aq) → ZnCl₂ (aq) + H₂ (g)↑, releasing flammable hydrogen gas that burns with a pop sound.",
     },
     {
         "topic": "Physics",
@@ -455,6 +458,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "easy",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "Newton's Third Law of Motion establishes that all forces exist in matched pairs: whenever object A exerts a force on object B, object B simultaneously exerts an equal and opposite force on object A.",
     },
     {
         "topic": "Computer Science",
@@ -467,6 +471,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "medium",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "Binary search halves the remaining candidate elements with each comparison, requiring at most ⌊log₂ n⌋ + 1 steps. Therefore, its worst-case and average-case time complexity is O(log n).",
     },
     {
         "topic": "Mathematics",
@@ -479,6 +484,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "medium",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "By applying the power rule of differentiation d/dx[xⁿ] = n · xⁿ⁻¹, we have d/dx[x³] = 3 · x³⁻¹ = 3x².",
     },
     {
         "topic": "Chemistry",
@@ -491,6 +497,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "easy",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "At 25°C, auto-ionization of pure water produces [H⁺] = [OH⁻] = 1.0 × 10⁻⁷ M. Since pH = -log₁₀[H⁺], pH = -log₁₀(10⁻⁷) = 7.0 (neutral).",
     },
     {
         "topic": "Biology",
@@ -503,6 +510,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "easy",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "Mitochondria carry out oxidative phosphorylation and the Krebs cycle to generate adenosine triphosphate (ATP), the primary biochemical energy currency of the eukaryotic cell.",
     },
     {
         "topic": "Physics",
@@ -515,6 +523,7 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "hard",
         "preview_coins": 15,
         "preview_xp": 30,
+        "explanation": "The speed of light c in vacuum is exactly 299,792,458 m/s, approximately 3 × 10⁸ m/s (in meters) and 3 × 10⁵ km/s (in kilometers). Thus Both A and C are correct.",
     },
     {
         "topic": "Mathematics",
@@ -527,18 +536,30 @@ SAMPLE_QUIZ_QUESTIONS = [
         "difficulty": "medium",
         "preview_coins": 10,
         "preview_xp": 20,
+        "explanation": "In the quadratic formula x = (-b ± √(b² - 4ac))/(2a), when the discriminant Δ = b² - 4ac equals 0, the term under the square root vanishes, resulting in two coincident/equal real roots x = -b/(2a).",
     },
 ]
 
 
 def ensure_quiz_questions_exist(db: Session) -> None:
-    """Seed sample quiz questions if none exist."""
+    """Seed sample quiz questions if none exist, or backfill explanations."""
     count = db.query(models.QuizQuestion).count()
     if count == 0:
         for q_data in SAMPLE_QUIZ_QUESTIONS:
             q = models.QuizQuestion(**q_data)
             db.add(q)
         db.commit()
+    else:
+        # Backfill explanations if existing questions don't have them
+        existing_qs = db.query(models.QuizQuestion).all()
+        q_map = {q["prompt"]: q for q in SAMPLE_QUIZ_QUESTIONS}
+        updated = False
+        for eq in existing_qs:
+            if not eq.explanation and eq.prompt in q_map:
+                eq.explanation = q_map[eq.prompt]["explanation"]
+                updated = True
+        if updated:
+            db.commit()
 
 
 def ensure_active_battle_exists(db: Session) -> None:

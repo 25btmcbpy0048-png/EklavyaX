@@ -503,6 +503,7 @@ class QuizQuestion(Base):
     difficulty: Mapped[str] = mapped_column(String(20), default="medium", nullable=False)
     preview_coins: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     preview_xp: Mapped[int] = mapped_column(Integer, default=20, nullable=False)
+    explanation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     def get_canonical_options(self) -> list[str]:
         return [self.option_a, self.option_b, self.option_c, self.option_d]

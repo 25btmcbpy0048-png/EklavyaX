@@ -250,41 +250,79 @@ const EklavyaXQuiz = (() => {
       banner.style.display = "flex";
       banner.className = `quiz-feedback-banner ${result.is_correct ? "correct" : "incorrect"}`;
 
-      let rewardText = "";
+      const optionLetters = ["A", "B", "C", "D"];
+      const correctLetter = optionLetters[result.correct_option_index] || "";
+      const correctText = result.correct_option_text || "";
+      const explanation = result.explanation || "";
+
+      let contentHtml = "";
+
       if (result.is_correct) {
+        let statusSubtext = "";
         if (result.rejection_reason === "cooldown_violation") {
-          rewardText = `
-            <div>
-              <strong>Correct!</strong> But submitted too quickly (&lt; 2s cooldown) — no rewards credited.
-            </div>
-          `;
+          statusSubtext = '<span style="color: #fcd34d;">Submitted too quickly (&lt; 2s cooldown) — no rewards credited.</span>';
         } else if (result.rejection_reason === "cap_exceeded") {
-          rewardText = `
-            <div>
-              <strong>Correct!</strong> Daily earn cap reached — 0 reward granted.
-            </div>
-          `;
+          statusSubtext = '<span style="color: #fcd34d;">Daily earn cap reached — 0 reward granted.</span>';
         } else {
           const coinDiff = result.coins_awarded !== result.preview_coins ? ` (Cap adjusted from ${result.preview_coins})` : "";
-          rewardText = `
-            <div>
-              <strong>Correct! 🎉</strong>
-              <div class="quiz-feedback-reward">
-                <span>+${result.coins_awarded} EduCoins${coinDiff}</span>
-                <span>+${result.xp_awarded} XP</span>
-              </div>
+          statusSubtext = `
+            <div class="quiz-feedback-reward">
+              <span>+${result.coins_awarded} EduCoins${coinDiff}</span>
+              <span>+${result.xp_awarded} XP</span>
             </div>
           `;
         }
+
+        contentHtml = `
+          <div class="quiz-feedback-content">
+            <div class="quiz-feedback-status">
+              <i class="fas fa-check-circle" style="color: #10b981; font-size: 1.3rem;"></i>
+              <div>
+                <strong style="color: #6ee7b7; font-size: 1.05rem;">Correct Answer! 🎉</strong>
+                ${statusSubtext}
+              </div>
+            </div>
+            ${explanation ? `
+              <div class="quiz-explanation-box is-correct-exp">
+                <div class="quiz-explanation-header">
+                  <i class="fas fa-lightbulb" style="color: var(--accent-gold, #f4ae25);"></i>
+                  <strong>Key Concept & Explanation:</strong>
+                </div>
+                <div class="quiz-explanation-text">
+                  ${escapeHtml(explanation)}
+                </div>
+              </div>
+            ` : ""}
+          </div>
+        `;
       } else {
-        rewardText = `
-          <div>
-            <strong>Incorrect</strong> • Review the correct option highlighted in green.
+        contentHtml = `
+          <div class="quiz-feedback-content">
+            <div class="quiz-feedback-status">
+              <i class="fas fa-times-circle" style="color: #ef4444; font-size: 1.3rem;"></i>
+              <div>
+                <strong style="color: #fca5a5; font-size: 1.05rem;">Incorrect Answer</strong>
+                <div class="quiz-correct-option-callout">
+                  Correct Answer: <strong style="color: #6ee7b7;">Option ${correctLetter}${correctText ? ': ' + escapeHtml(correctText) : ''}</strong>
+                </div>
+              </div>
+            </div>
+            ${explanation ? `
+              <div class="quiz-explanation-box">
+                <div class="quiz-explanation-header">
+                  <i class="fas fa-lightbulb" style="color: var(--accent-gold, #f4ae25);"></i>
+                  <strong>Explanation & Solution:</strong>
+                </div>
+                <div class="quiz-explanation-text">
+                  ${escapeHtml(explanation)}
+                </div>
+              </div>
+            ` : ""}
           </div>
         `;
       }
 
-      banner.innerHTML = rewardText;
+      banner.innerHTML = contentHtml;
     }
 
     // Toggle button to Next Question

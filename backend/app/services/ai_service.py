@@ -463,13 +463,28 @@ Rules:
 - Include interesting calculations, conceptual paradoxes, and practical applications.
 - Provide a clear, educational explanation for why the correct option is right.
 
+CRITICAL MATH FORMATTING RULES (MUST FOLLOW):
+- Do NOT use LaTeX notation. No dollar signs ($), no backslash commands (\\frac, \\left, \\right, \\log, \\sqrt, \\times, \\cdot, \\theta, \\pi, \\alpha, \\beta, \\infty, etc.).
+- Write all math using plain text and Unicode symbols:
+  - Fractions: write "n/2" or "(n/2)" instead of \\frac{{n}}{{2}}
+  - Exponents: use Unicode superscripts: ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹ ⁿ (e.g. "n²" not "n^2" or "n^{{2}}")
+  - Subscripts: use Unicode subscripts: ₀ ₁ ₂ ₃ ₄ (e.g. "log₂" not "\\log_2")
+  - Square root: use √ symbol (e.g. "√2" or "√(n)")
+  - Multiplication: use × or · (e.g. "3 × 10⁸")
+  - Greek letters: use Unicode: π θ α β γ λ μ Ω Δ
+  - Comparisons: use ≤ ≥ ≠ ≈
+  - Functions: write "log n", "sin θ", "cos x" as plain words, no backslashes
+  - Infinity: use ∞
+  - Arrows: use → ← ↔
+  - Integrals/sums: describe in words (e.g. "the integral of sin(x) from 0 to π")
+
 STRICT FORMAT REQUIREMENT:
 Respond ONLY with a valid JSON array of objects, with NO markdown ticks, NO code blocks, NO commentary, NO preamble.
 Each object in the array must follow this exact schema:
 [
   {{
     "topic": "{topic}",
-    "prompt": "Clear, concise conceptual question statement",
+    "prompt": "Clear, concise question using plain text and Unicode math symbols",
     "option_a": "Option A text",
     "option_b": "Option B text",
     "option_c": "Option C text",
@@ -478,16 +493,124 @@ Each object in the array must follow this exact schema:
     "difficulty": "medium",
     "preview_coins": 10,
     "preview_xp": 20,
-    "explanation": "Clear, educational explanation of the underlying scientific/mathematical principle and why the correct answer is right."
+    "explanation": "Clear, educational explanation using plain text and Unicode math symbols."
   }}
 ]
 Note: correct_option_index must be an integer from 0 to 3 (0=option_a, 1=option_b, 2=option_c, 3=option_d).
 """
 
+
+# ── LaTeX-to-Unicode sanitizer ──────────────────────────────────────────────
+
+import re as _re
+
+_SUPERSCRIPT_MAP = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "n": "ⁿ", "i": "ⁱ", "x": "ˣ", "+": "⁺", "-": "⁻",
+}
+
+_SUBSCRIPT_MAP = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+    "n": "ₙ", "i": "ᵢ", "x": "ₓ",
+}
+
+
+def _to_superscript(s: str) -> str:
+    return "".join(_SUPERSCRIPT_MAP.get(c, c) for c in s)
+
+
+def _to_subscript(s: str) -> str:
+    return "".join(_SUBSCRIPT_MAP.get(c, c) for c in s)
+
+
+def sanitize_latex_to_unicode(text: str) -> str:
+    """Convert any remaining LaTeX math notation in text to clean Unicode symbols."""
+    if not text or not isinstance(text, str):
+        return text
+
+    # Strip enclosing dollar signs: $...$ or $$...$$
+    text = _re.sub(r"\$\$([^\$]+)\$\$", r"\1", text)
+    text = _re.sub(r"\$([^\$]+)\$", r"\1", text)
+
+    # \left and \right delimiters
+    text = _re.sub(r"\\left\s*\(", "(", text)
+    text = _re.sub(r"\\right\s*\)", ")", text)
+    text = _re.sub(r"\\left\s*\[", "[", text)
+    text = _re.sub(r"\\right\s*\]", "]", text)
+    text = _re.sub(r"\\left\s*\\?\{", "{", text)
+    text = _re.sub(r"\\right\s*\\?\}", "}", text)
+    text = _re.sub(r"\\left\s*\|", "|", text)
+    text = _re.sub(r"\\right\s*\|", "|", text)
+
+    # Fractions: \frac{a}{b} → (a/b)
+    for _ in range(3):  # handle nested fracs
+        text = _re.sub(r"\\frac\{([^{}]+)\}\{([^{}]+)\}", r"(\1/\2)", text)
+
+    # Square root: \sqrt{x} → √(x), \sqrt[n]{x} → ⁿ√(x)
+    text = _re.sub(r"\\sqrt\[(\d+)\]\{([^{}]+)\}", lambda m: _to_superscript(m.group(1)) + "√(" + m.group(2) + ")", text)
+    text = _re.sub(r"\\sqrt\{([^{}]+)\}", r"√(\1)", text)
+
+    # Greek letters
+    _greek = {
+        "alpha": "α", "beta": "β", "gamma": "γ", "delta": "δ", "epsilon": "ε",
+        "zeta": "ζ", "eta": "η", "theta": "θ", "iota": "ι", "kappa": "κ",
+        "lambda": "λ", "mu": "μ", "nu": "ν", "xi": "ξ", "pi": "π",
+        "rho": "ρ", "sigma": "σ", "tau": "τ", "phi": "φ", "chi": "χ",
+        "psi": "ψ", "omega": "ω",
+        "Alpha": "Α", "Beta": "Β", "Gamma": "Γ", "Delta": "Δ",
+        "Theta": "Θ", "Lambda": "Λ", "Pi": "Π", "Sigma": "Σ",
+        "Phi": "Φ", "Psi": "Ψ", "Omega": "Ω",
+    }
+    for name, symbol in _greek.items():
+        text = _re.sub(rf"\\{name}\b", symbol, text)
+
+    # Common math commands
+    text = _re.sub(r"\\times\b", "×", text)
+    text = _re.sub(r"\\cdot\b", "·", text)
+    text = _re.sub(r"\\div\b", "÷", text)
+    text = _re.sub(r"\\pm\b", "±", text)
+    text = _re.sub(r"\\mp\b", "∓", text)
+    text = _re.sub(r"\\infty\b", "∞", text)
+    text = _re.sub(r"\\approx\b", "≈", text)
+    text = _re.sub(r"\\neq\b", "≠", text)
+    text = _re.sub(r"\\le\b|\\leq\b", "≤", text)
+    text = _re.sub(r"\\ge\b|\\geq\b", "≥", text)
+    text = _re.sub(r"\\rightarrow\b|\\to\b", "→", text)
+    text = _re.sub(r"\\leftarrow\b", "←", text)
+    text = _re.sub(r"\\leftrightarrow\b", "↔", text)
+    text = _re.sub(r"\\degree\b", "°", text)
+
+    # Function names (remove backslash but keep name)
+    for fn in ["log", "ln", "sin", "cos", "tan", "cot", "sec", "csc",
+               "arcsin", "arccos", "arctan", "lim", "max", "min", "sum", "prod"]:
+        text = _re.sub(rf"\\{fn}\b", fn, text)
+
+    # Subscripts: _{...} or _x
+    text = _re.sub(r"_\{([^{}]+)\}", lambda m: _to_subscript(m.group(1)), text)
+    text = _re.sub(r"_([0-9a-z])", lambda m: _to_subscript(m.group(1)), text)
+
+    # Superscripts: ^{...} or ^x (do after subscripts to avoid conflicts)
+    text = _re.sub(r"\^\{([^{}]+)\}", lambda m: _to_superscript(m.group(1)), text)
+    text = _re.sub(r"\^([0-9a-z+\-])", lambda m: _to_superscript(m.group(1)), text)
+
+    # Clean any remaining stray backslash-commands (e.g. \text{...})
+    text = _re.sub(r"\\text\{([^{}]+)\}", r"\1", text)
+    text = _re.sub(r"\\mathrm\{([^{}]+)\}", r"\1", text)
+    text = _re.sub(r"\\mathbf\{([^{}]+)\}", r"\1", text)
+
+    # Clean stray curly braces left from LaTeX
+    text = _re.sub(r"\{([^{}]*)\}", r"\1", text)
+
+    return text.strip()
+
+
 async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 10) -> list[dict]:
     """
     Generate multiple-choice quiz questions dynamically using Groq Cloud / configured AI provider.
     Ensures 10 fresh, unique questions changing every time.
+    All text fields are sanitized to remove LaTeX and use proper Unicode math symbols.
     """
     import json
     import random
@@ -531,16 +654,18 @@ async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 1
                 ):
                     valid_questions.append({
                         "topic": item.get("topic", topic),
-                        "prompt": item["prompt"],
-                        "option_a": item["option_a"],
-                        "option_b": item["option_b"],
-                        "option_c": item["option_c"],
-                        "option_d": item["option_d"],
+                        "prompt": sanitize_latex_to_unicode(item["prompt"]),
+                        "option_a": sanitize_latex_to_unicode(item["option_a"]),
+                        "option_b": sanitize_latex_to_unicode(item["option_b"]),
+                        "option_c": sanitize_latex_to_unicode(item["option_c"]),
+                        "option_d": sanitize_latex_to_unicode(item["option_d"]),
                         "correct_option_index": int(item["correct_option_index"]) % 4,
                         "difficulty": item.get("difficulty", "medium"),
                         "preview_coins": int(item.get("preview_coins", 10)),
                         "preview_xp": int(item.get("preview_xp", 20)),
-                        "explanation": item.get("explanation", f"The correct answer is {item['option_a']}."),
+                        "explanation": sanitize_latex_to_unicode(
+                            item.get("explanation", f"The correct answer is {item['option_a']}.")
+                        ),
                     })
             if valid_questions:
                 return valid_questions
@@ -551,6 +676,4 @@ async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 1
         status_code=status.HTTP_502_BAD_GATEWAY,
         detail="AI generated an invalid question format. Please retry.",
     )
-
-
 

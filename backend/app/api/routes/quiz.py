@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.security import get_current_user, require_role
 from app.db import models
 from app.db.database import get_db
+from app.services.ai_service import sanitize_latex_to_unicode
 from app.schemas.quiz_sch import (
     QuizAnswerSummary,
     QuizNextResponse,
@@ -176,8 +177,8 @@ def start_quiz(
         quiz_run_id=quiz_run_id,
         question_index=0,
         total_questions=num_q,
-        prompt=q0.prompt,
-        options=first_shuffled_options,
+        prompt=sanitize_latex_to_unicode(q0.prompt),
+        options=[sanitize_latex_to_unicode(o) for o in first_shuffled_options],
         preview_coins=q0.preview_coins,
         preview_xp=q0.preview_xp,
         question_shown_at=sessions[0].question_shown_at,
@@ -260,10 +261,12 @@ def submit_answer(
     shuffled_correct_index = perm.index(canonical_correct) if canonical_correct in perm else 0
     canonical_options = session.question.get_canonical_options()
     correct_option_text = canonical_options[canonical_correct] if 0 <= canonical_correct < len(canonical_options) else ""
+    correct_option_text = sanitize_latex_to_unicode(correct_option_text)
 
     explanation = session.question.explanation
     if not explanation:
         explanation = f"The correct answer is '{correct_option_text}'."
+    explanation = sanitize_latex_to_unicode(explanation)
 
     wallet = db.query(models.Wallet).filter_by(user_id=current_user.id).first()
 
@@ -333,8 +336,8 @@ def get_next_question(
         quiz_run_id=quiz_run_id,
         question_index=session.question_index,
         total_questions=session.total_questions,
-        prompt=q.prompt,
-        options=shuffled_options,
+        prompt=sanitize_latex_to_unicode(q.prompt),
+        options=[sanitize_latex_to_unicode(o) for o in shuffled_options],
         preview_coins=q.preview_coins,
         preview_xp=q.preview_xp,
         question_shown_at=session.question_shown_at,

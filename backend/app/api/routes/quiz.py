@@ -63,10 +63,25 @@ async def generate_ai_quiz(
 
 
 
+def _run_async(coro):
+    import asyncio
+    import concurrent.futures
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, coro).result(timeout=12)
+    else:
+        return asyncio.run(coro)
+
+
 @router.post(
     "/start",
     response_model=QuizStartResponse,
-    summary="Start a new quiz run with server-shuffled questions",
+    summary="Start a new quiz run with fresh dynamic questions from Groq AI",
 )
 def start_quiz(
     payload: QuizStartRequest,
@@ -74,35 +89,62 @@ def start_quiz(
     db: Session = Depends(get_db),
 ):
     """
-    Initiates a new quiz run.
-    1. Selects questions (optionally filtered by topic).
-    2. Shuffles answer options per session so client cannot exploit fixed order.
-    3. Server stamps `question_shown_at` for the first question.
+    Initiates a new quiz run with exactly 10 questions.
+    1. Generates 10 fresh, unique questions via Groq Cloud AI.
+    2. Falls back to randomly sampled question bank if Groq is offline or throttling.
+    3. Shuffles answer options per session and server stamps question_shown_at.
     """
-    query = db.query(models.QuizQuestion)
-    if payload.topic:
-        query = query.filter(models.QuizQuestion.topic.ilike(f"%{payload.topic}%"))
+    num_q = payload.num_questions or 10  # Enforce 10 questions per quiz run (or test override)
+    target_topic = payload.topic if payload.topic else random.choice(["Physics", "Chemistry", "Mathematics", "Biology", "Computer Science"])
 
-    questions = query.all()
-    if not questions:
-        
-        questions = db.query(models.QuizQuestion).all()
+    selected_questions: List[models.QuizQuestion] = []
 
-    if not questions:
+    # 1. Attempt dynamic question generation via Groq Cloud AI
+    try:
+        from app.services.ai_service import generate_ai_quiz_questions
+        ai_questions = _run_async(generate_ai_quiz_questions(topic=target_topic, num_questions=num_q))
+        if ai_questions:
+            for q_data in ai_questions:
+                q = models.QuizQuestion(**q_data)
+                db.add(q)
+                selected_questions.append(q)
+            db.commit()
+            for q in selected_questions:
+                db.refresh(q)
+    except Exception as exc:
+        # Fallback cleanly to database question bank
+        pass
+
+    # 2. Fallback to existing question bank if AI generation didn't yield full set
+    if len(selected_questions) < num_q:
         from app.services.game_logic import ensure_quiz_questions_exist
         ensure_quiz_questions_exist(db)
-        questions = db.query(models.QuizQuestion).all()
 
-    if not questions:
+        query = db.query(models.QuizQuestion)
+        if payload.topic:
+            filtered = query.filter(models.QuizQuestion.topic.ilike(f"%{payload.topic}%")).all()
+            pool = filtered if filtered else query.all()
+        else:
+            pool = query.all()
+
+        if pool:
+            needed = num_q - len(selected_questions)
+            # Pick random distinct questions not already in selected_questions
+            existing_ids = {q.id for q in selected_questions if q.id}
+            available = [q for q in pool if q.id not in existing_ids]
+            if not available:
+                available = pool
+            sample_size = min(needed, len(available))
+            fallback_sample = random.sample(available, sample_size)
+            selected_questions.extend(fallback_sample)
+
+    if not selected_questions:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="No quiz questions found in question bank.",
+            detail="No quiz questions available. Please try again.",
         )
 
-    num_q = payload.num_questions or settings.QUIZ_DEFAULT_SIZE
-    num_q = min(num_q, len(questions))
-    selected_questions = random.sample(questions, num_q)
-
+    num_q = len(selected_questions)
     quiz_run_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
 

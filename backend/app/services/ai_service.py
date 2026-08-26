@@ -455,11 +455,16 @@ async def get_explanation(highlighted_text: str, target_language: str = "Simple 
 
 
 
-QUIZ_GEN_PROMPT_TEMPLATE = """You are an expert STEM exam & quiz creator for secondary/higher-secondary students.
-Generate exactly {num_questions} multiple-choice questions on the topic: "{topic}".
+QUIZ_GEN_PROMPT_TEMPLATE = """You are an expert STEM quiz and competitive exam creator (covering Physics, Chemistry, Mathematics, Biology, Computer Science).
+Generate exactly {num_questions} fresh, unique, challenging multiple-choice questions on the topic: "{topic}".
+Random Seed / Variation: {seed}
+Rules:
+- Generate completely new and creative questions (do not repeat standard trivial examples).
+- Include interesting calculations, conceptual paradoxes, and practical applications.
+- Provide a clear, educational explanation for why the correct option is right.
 
 STRICT FORMAT REQUIREMENT:
-Respond ONLY with a valid JSON array of objects, with NO markdown ticks, NO commentary, NO preamble.
+Respond ONLY with a valid JSON array of objects, with NO markdown ticks, NO code blocks, NO commentary, NO preamble.
 Each object in the array must follow this exact schema:
 [
   {{
@@ -472,26 +477,31 @@ Each object in the array must follow this exact schema:
     "correct_option_index": 0,
     "difficulty": "medium",
     "preview_coins": 10,
-    "preview_xp": 20
+    "preview_xp": 20,
+    "explanation": "Clear, educational explanation of the underlying scientific/mathematical principle and why the correct answer is right."
   }}
 ]
 Note: correct_option_index must be an integer from 0 to 3 (0=option_a, 1=option_b, 2=option_c, 3=option_d).
 """
 
-async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 5) -> list[dict]:
+async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 10) -> list[dict]:
     """
-    Generate multiple-choice quiz questions dynamically using the configured AI provider.
+    Generate multiple-choice quiz questions dynamically using Groq Cloud / configured AI provider.
+    Ensures 10 fresh, unique questions changing every time.
     """
     import json
+    import random
     import re
+    import time
 
+    seed = f"{int(time.time() * 1000)}-{random.randint(1000, 9999)}"
     prompt = QUIZ_GEN_PROMPT_TEMPLATE.format(
         num_questions=min(num_questions, 15),
         topic=topic,
+        seed=seed,
     )
 
     raw_response = await get_explanation(prompt)
-
 
     cleaned = raw_response.strip()
     if cleaned.startswith("```json"):
@@ -530,6 +540,7 @@ async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 5
                         "difficulty": item.get("difficulty", "medium"),
                         "preview_coins": int(item.get("preview_coins", 10)),
                         "preview_xp": int(item.get("preview_xp", 20)),
+                        "explanation": item.get("explanation", f"The correct answer is {item['option_a']}."),
                     })
             if valid_questions:
                 return valid_questions
@@ -540,5 +551,6 @@ async def generate_ai_quiz_questions(topic: str = "STEM", num_questions: int = 5
         status_code=status.HTTP_502_BAD_GATEWAY,
         detail="AI generated an invalid question format. Please retry.",
     )
+
 
 

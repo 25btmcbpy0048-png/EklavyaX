@@ -1,3 +1,11 @@
+"""
+app/db/models.py
+────────────────
+SQLAlchemy 2.0-style ORM models for EklavyaX.
+
+All models use Mapped[] + mapped_column() for full type-safety.
+Relationships use back_populates for bidirectional navigation.
+"""
 from __future__ import annotations
 
 import enum
@@ -23,6 +31,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Enums
+# ─────────────────────────────────────────────────────────────────────────────
 
 class UserRole(str, enum.Enum):
     student = "student"
@@ -36,6 +47,10 @@ class ChallengeStatus(str, enum.Enum):
     completed = "completed"
     cancelled = "cancelled"
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Faction
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Faction(Base):
     """
@@ -51,12 +66,16 @@ class Faction(Base):
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     icon_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
+    # Relationships
     users: Mapped[List["User"]] = relationship("User", back_populates="faction")
 
     def __repr__(self) -> str:
         return f"<Faction id={self.id} name={self.name!r} score={self.score}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# User
+# ─────────────────────────────────────────────────────────────────────────────
 
 class User(Base):
     """Core user model. Handles all three roles: student, teacher, admin."""
@@ -129,6 +148,9 @@ class User(Base):
         return f"<User id={self.id} username={self.username!r} role={self.role}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Streak
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Streak(Base):
     """
@@ -146,7 +168,7 @@ class Streak(Base):
     last_activity_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     streak_freezes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    
+    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="streak")
 
     def __repr__(self) -> str:
@@ -155,6 +177,10 @@ class Streak(Base):
             f"current={self.current_streak} longest={self.longest_streak}>"
         )
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Wallet
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Wallet(Base):
     """
@@ -171,12 +197,16 @@ class Wallet(Base):
     balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="wallet")
 
     def __repr__(self) -> str:
         return f"<Wallet user_id={self.user_id} balance={self.balance} xp={self.xp}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Transaction
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Transaction(Base):
     """
@@ -196,13 +226,16 @@ class Transaction(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-   
+    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="transactions")
 
     def __repr__(self) -> str:
         return f"<Transaction id={self.id} user_id={self.user_id} amount={self.amount} reason={self.reason!r}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Bounty
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Bounty(Base):
     """
@@ -225,7 +258,7 @@ class Bounty(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-   
+    # Relationships
     teacher: Mapped["User"] = relationship("User", back_populates="bounties_created")
     submissions: Mapped[List["BountySubmission"]] = relationship(
         "BountySubmission", back_populates="bounty", cascade="all, delete-orphan"
@@ -235,6 +268,9 @@ class Bounty(Base):
         return f"<Bounty id={self.id} title={self.title!r} active={self.is_active}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# BountySubmission
+# ─────────────────────────────────────────────────────────────────────────────
 
 class BountySubmission(Base):
     """Student's claim that they completed a bounty. Requires teacher approval."""
@@ -257,6 +293,7 @@ class BountySubmission(Base):
     is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)   # 0-100 percentage
 
+    # Relationships
     bounty: Mapped["Bounty"] = relationship("Bounty", back_populates="submissions")
     student: Mapped["User"] = relationship(
         "User",
@@ -272,6 +309,9 @@ class BountySubmission(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Challenge
+# ─────────────────────────────────────────────────────────────────────────────
 
 class Challenge(Base):
     """
@@ -304,7 +344,7 @@ class Challenge(Base):
         DateTime(timezone=True), nullable=True
     )
 
-
+    # Relationships
     challenger: Mapped["User"] = relationship(
         "User",
         back_populates="challenges_as_challenger",
@@ -331,6 +371,9 @@ class Challenge(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ChallengeResult
+# ─────────────────────────────────────────────────────────────────────────────
 
 class ChallengeResult(Base):
     """Per-question performance record for a challenge."""
@@ -348,7 +391,7 @@ class ChallengeResult(Base):
     correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
     time_taken_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-  
+    # Relationships
     challenge: Mapped["Challenge"] = relationship("Challenge", back_populates="results")
     student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
 
@@ -359,6 +402,9 @@ class ChallengeResult(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# AIExplanationLog
+# ─────────────────────────────────────────────────────────────────────────────
 
 class AIExplanationLog(Base):
     """
@@ -380,7 +426,7 @@ class AIExplanationLog(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-   
+    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="ai_logs")
 
     def __repr__(self) -> str:
@@ -390,6 +436,9 @@ class AIExplanationLog(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# RewardAuditLog
+# ─────────────────────────────────────────────────────────────────────────────
 
 class ReasonCode(str, enum.Enum):
     granted = "granted"
@@ -422,7 +471,7 @@ class RewardAuditLog(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    
+    # Relationship
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
 
     def __repr__(self) -> str:
@@ -432,6 +481,9 @@ class RewardAuditLog(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# QuizQuestion
+# ─────────────────────────────────────────────────────────────────────────────
 
 class QuizQuestion(Base):
     """
@@ -460,6 +512,9 @@ class QuizQuestion(Base):
         return f"<QuizQuestion id={self.id} topic={self.topic!r}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# QuizSession
+# ─────────────────────────────────────────────────────────────────────────────
 
 class QuizSession(Base):
     """
@@ -496,7 +551,7 @@ class QuizSession(Base):
     xp_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     rejection_reason: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    
+    # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     question: Mapped["QuizQuestion"] = relationship("QuizQuestion", foreign_keys=[question_id])
 
@@ -507,6 +562,9 @@ class QuizSession(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# UserResponseMetric
+# ─────────────────────────────────────────────────────────────────────────────
 
 class UserResponseMetric(Base):
     """
@@ -532,6 +590,10 @@ class UserResponseMetric(Base):
             f"time={self.response_time_ms}ms correct={self.is_correct}>"
         )
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FactionBattle
+# ─────────────────────────────────────────────────────────────────────────────
 
 class BattleStatus(str, enum.Enum):
     scheduled = "scheduled"
@@ -562,7 +624,7 @@ class FactionBattle(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    
+    # Relationships
     scores: Mapped[List["FactionBattleScore"]] = relationship(
         "FactionBattleScore", back_populates="battle", cascade="all, delete-orphan"
     )
@@ -574,6 +636,9 @@ class FactionBattle(Base):
         return f"<FactionBattle id={self.id} status={self.status} title={self.title!r}>"
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FactionBattleScore
+# ─────────────────────────────────────────────────────────────────────────────
 
 class FactionBattleScore(Base):
     """
@@ -596,7 +661,7 @@ class FactionBattleScore(Base):
     total_coins: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     contributor_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-
+    # Relationships
     battle: Mapped["FactionBattle"] = relationship("FactionBattle", back_populates="scores")
     faction: Mapped["Faction"] = relationship("Faction", foreign_keys=[faction_id])
 
@@ -607,6 +672,9 @@ class FactionBattleScore(Base):
         )
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# FactionBattleContribution
+# ─────────────────────────────────────────────────────────────────────────────
 
 class FactionBattleContribution(Base):
     """
@@ -631,6 +699,7 @@ class FactionBattleContribution(Base):
     xp_contributed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     questions_answered: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
+    # Relationships
     battle: Mapped["FactionBattle"] = relationship("FactionBattle", back_populates="contributions")
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
 

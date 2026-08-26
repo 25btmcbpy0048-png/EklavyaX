@@ -100,9 +100,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
                     )
                 )
                 con.commit()
-
             except Exception:
                 con.rollback()
+
+        try:
+            con.execute(text("ALTER TABLE quiz_questions ADD COLUMN explanation TEXT"))
+            con.commit()
+        except Exception:
+            con.rollback()
 
     
     from app.db.database import SessionLocal

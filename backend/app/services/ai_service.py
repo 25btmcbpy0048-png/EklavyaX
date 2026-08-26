@@ -115,7 +115,7 @@ async def _call_groq(prompt: str) -> str:
                 "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.7,
-                "max_tokens": 1200,
+                "max_tokens": 3500,
             }
 
             try:

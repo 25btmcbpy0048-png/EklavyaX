@@ -250,9 +250,14 @@ if isinstance(configured_origins, str):
 
 cors_origins = list(configured_origins)
 
+allowed_frontends = [
+    "https://eklavyax.vercel.app",
+    "https://eklavya-x.vercel.app",
+]
 
-if "https://eklavyax.vercel.app" not in cors_origins:
-    cors_origins.append("https://eklavyax.vercel.app")
+for origin in allowed_frontends:
+    if origin not in cors_origins:
+        cors_origins.append(origin)
 
 
 for local_origin in [

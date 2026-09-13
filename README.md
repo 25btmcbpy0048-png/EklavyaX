@@ -1,4 +1,4 @@
-# 🌟 EklavyaX
+###🌟 EklavyaX
 
 **EklavyaX** is a gamified AI learning platform for students and teachers, combining AI tutoring, virtual labs, assignments, progress tracking, and rewards.
 

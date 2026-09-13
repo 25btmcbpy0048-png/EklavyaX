@@ -1,11 +1,3 @@
-"""
-app/db/models.py
-────────────────
-SQLAlchemy 2.0-style ORM models for EklavyaX.
-
-All models use Mapped[] + mapped_column() for full type-safety.
-Relationships use back_populates for bidirectional navigation.
-"""
 from __future__ import annotations
 
 import enum
@@ -31,10 +23,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.database import Base
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Enums
-# ─────────────────────────────────────────────────────────────────────────────
-
 class UserRole(str, enum.Enum):
     student = "student"
     teacher = "teacher"
@@ -48,38 +36,23 @@ class ChallengeStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Faction
-# ─────────────────────────────────────────────────────────────────────────────
-
 class Faction(Base):
-    """
-    One of four permanent houses a user is sorted into on registration.
-    Faction score aggregates XP from all its members.
-    """
     __tablename__ = "factions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     description: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    color_hex: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)  # e.g. "#FF6B35"
+    color_hex: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
     score: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     icon_url: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    # Relationships
     users: Mapped[List["User"]] = relationship("User", back_populates="faction")
 
     def __repr__(self) -> str:
         return f"<Faction id={self.id} name={self.name!r} score={self.score}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# User
-# ─────────────────────────────────────────────────────────────────────────────
-
 class User(Base):
-    """Core user model. Handles all three roles: student, teacher, admin."""
-
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -110,7 +83,6 @@ class User(Base):
         nullable=False,
     )
 
-    # Relationships
     faction: Mapped[Optional["Faction"]] = relationship("Faction", back_populates="users")
     streak: Mapped[Optional["Streak"]] = relationship(
         "Streak", back_populates="user", uselist=False, cascade="all, delete-orphan"
@@ -148,15 +120,7 @@ class User(Base):
         return f"<User id={self.id} username={self.username!r} role={self.role}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Streak
-# ─────────────────────────────────────────────────────────────────────────────
-
 class Streak(Base):
-    """
-    Daily learning streak tracker.
-    Maintains current streak, longest streak, and freeze token count.
-    """
     __tablename__ = "streaks"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -168,7 +132,6 @@ class Streak(Base):
     last_activity_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     streak_freezes: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="streak")
 
     def __repr__(self) -> str:
@@ -178,16 +141,7 @@ class Streak(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Wallet
-# ─────────────────────────────────────────────────────────────────────────────
-
 class Wallet(Base):
-    """
-    Virtual economy wallet.
-    balance = EduCoins (spendable currency)
-    xp      = Experience Points (non-spendable, drives leaderboard)
-    """
     __tablename__ = "wallets"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -197,22 +151,13 @@ class Wallet(Base):
     balance: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     xp: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="wallet")
 
     def __repr__(self) -> str:
         return f"<Wallet user_id={self.user_id} balance={self.balance} xp={self.xp}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Transaction
-# ─────────────────────────────────────────────────────────────────────────────
-
 class Transaction(Base):
-    """
-    Immutable ledger of all coin movements.
-    amount > 0 = credit, amount < 0 = debit.
-    """
     __tablename__ = "transactions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -226,22 +171,13 @@ class Transaction(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="transactions")
 
     def __repr__(self) -> str:
         return f"<Transaction id={self.id} user_id={self.user_id} amount={self.amount} reason={self.reason!r}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Bounty
-# ─────────────────────────────────────────────────────────────────────────────
-
 class Bounty(Base):
-    """
-    Teacher-posted time-limited challenge on a specific topic.
-    Students earn reward_coins upon teacher approval.
-    """
     __tablename__ = "bounties"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -258,7 +194,6 @@ class Bounty(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    # Relationships
     teacher: Mapped["User"] = relationship("User", back_populates="bounties_created")
     submissions: Mapped[List["BountySubmission"]] = relationship(
         "BountySubmission", back_populates="bounty", cascade="all, delete-orphan"
@@ -268,14 +203,9 @@ class Bounty(Base):
         return f"<Bounty id={self.id} title={self.title!r} active={self.is_active}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# BountySubmission
-# ─────────────────────────────────────────────────────────────────────────────
-
 class BountySubmission(Base):
-    """Student's claim that they completed a bounty. Requires teacher approval."""
-
     __tablename__ = "bounty_submissions"
+
     __table_args__ = (
         UniqueConstraint("bounty_id", "student_id", name="uq_bounty_student"),
     )
@@ -291,9 +221,8 @@ class BountySubmission(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
     is_approved: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)   # 0-100 percentage
+    score: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
-    # Relationships
     bounty: Mapped["Bounty"] = relationship("Bounty", back_populates="submissions")
     student: Mapped["User"] = relationship(
         "User",
@@ -309,15 +238,7 @@ class BountySubmission(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Challenge
-# ─────────────────────────────────────────────────────────────────────────────
-
 class Challenge(Base):
-    """
-    1v1 peer challenge with optional EduCoin wager.
-    Supports both targeted (opponent_id set) and open challenges.
-    """
     __tablename__ = "challenges"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -344,7 +265,6 @@ class Challenge(Base):
         DateTime(timezone=True), nullable=True
     )
 
-    # Relationships
     challenger: Mapped["User"] = relationship(
         "User",
         back_populates="challenges_as_challenger",
@@ -371,13 +291,7 @@ class Challenge(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ChallengeResult
-# ─────────────────────────────────────────────────────────────────────────────
-
 class ChallengeResult(Base):
-    """Per-question performance record for a challenge."""
-
     __tablename__ = "challenge_results"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -391,7 +305,6 @@ class ChallengeResult(Base):
     correct: Mapped[bool] = mapped_column(Boolean, nullable=False)
     time_taken_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    # Relationships
     challenge: Mapped["Challenge"] = relationship("Challenge", back_populates="results")
     student: Mapped["User"] = relationship("User", foreign_keys=[student_id])
 
@@ -402,15 +315,7 @@ class ChallengeResult(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# AIExplanationLog
-# ─────────────────────────────────────────────────────────────────────────────
-
 class AIExplanationLog(Base):
-    """
-    Immutable log of every Synapse.ai explain call.
-    Used to track coin expenditure and power the "Good Student" refund mechanic.
-    """
     __tablename__ = "ai_explanation_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -426,7 +331,6 @@ class AIExplanationLog(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    # Relationship
     user: Mapped["User"] = relationship("User", back_populates="ai_logs")
 
     def __repr__(self) -> str:
@@ -435,10 +339,6 @@ class AIExplanationLog(Base):
             f"user_id={self.user_id} cost={self.cost_coins} refunded={self.refunded}>"
         )
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# RewardAuditLog
-# ─────────────────────────────────────────────────────────────────────────────
 
 class ReasonCode(str, enum.Enum):
     granted = "granted"
@@ -449,10 +349,6 @@ class ReasonCode(str, enum.Enum):
 
 
 class RewardAuditLog(Base):
-    """
-    Queryable audit log for every reward grant, rejection, or flag.
-    Every call through the safeguarded reward pipeline writes here.
-    """
     __tablename__ = "reward_audit_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -471,7 +367,6 @@ class RewardAuditLog(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    # Relationship
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
 
     def __repr__(self) -> str:
@@ -481,15 +376,7 @@ class RewardAuditLog(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# QuizQuestion
-# ─────────────────────────────────────────────────────────────────────────────
-
 class QuizQuestion(Base):
-    """
-    Server-side question bank entry.
-    correct_option_index is the 0-based index into the canonical options list.
-    """
     __tablename__ = "quiz_questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -499,7 +386,7 @@ class QuizQuestion(Base):
     option_b: Mapped[str] = mapped_column(String(500), nullable=False)
     option_c: Mapped[str] = mapped_column(String(500), nullable=False)
     option_d: Mapped[str] = mapped_column(String(500), nullable=False)
-    correct_option_index: Mapped[int] = mapped_column(Integer, nullable=False)  # 0-3
+    correct_option_index: Mapped[int] = mapped_column(Integer, nullable=False)
     difficulty: Mapped[str] = mapped_column(String(20), default="medium", nullable=False)
     preview_coins: Mapped[int] = mapped_column(Integer, default=10, nullable=False)
     preview_xp: Mapped[int] = mapped_column(Integer, default=20, nullable=False)
@@ -512,18 +399,9 @@ class QuizQuestion(Base):
         return f"<QuizQuestion id={self.id} topic={self.topic!r}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# QuizSession
-# ─────────────────────────────────────────────────────────────────────────────
-
 class QuizSession(Base):
-    """
-    Tracks a single question attempt within a quiz.
-    question_shown_at is SERVER-recorded; never trust the client.
-    shuffled_order stores the permutation (e.g. "2,0,3,1") so we can
-    map the client's chosen index back to the canonical correct index.
-    """
     __tablename__ = "quiz_sessions"
+
     __table_args__ = (
         UniqueConstraint("quiz_run_id", "question_id", name="uq_run_question"),
     )
@@ -536,9 +414,9 @@ class QuizSession(Base):
     question_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False
     )
-    question_index: Mapped[int] = mapped_column(Integer, nullable=False)  # 0-based position
+    question_index: Mapped[int] = mapped_column(Integer, nullable=False)
     total_questions: Mapped[int] = mapped_column(Integer, nullable=False)
-    shuffled_order: Mapped[str] = mapped_column(String(20), nullable=False)  # e.g. "2,0,3,1"
+    shuffled_order: Mapped[str] = mapped_column(String(20), nullable=False)
     question_shown_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -551,7 +429,6 @@ class QuizSession(Base):
     xp_awarded: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     rejection_reason: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
-    # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     question: Mapped["QuizQuestion"] = relationship("QuizQuestion", foreign_keys=[question_id])
 
@@ -562,15 +439,7 @@ class QuizSession(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# UserResponseMetric
-# ─────────────────────────────────────────────────────────────────────────────
-
 class UserResponseMetric(Base):
-    """
-    Rolling record of response times and accuracy per user.
-    Used by the pattern-detection engine to compute z-scores.
-    """
     __tablename__ = "user_response_metrics"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -591,10 +460,6 @@ class UserResponseMetric(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FactionBattle
-# ─────────────────────────────────────────────────────────────────────────────
-
 class BattleStatus(str, enum.Enum):
     scheduled = "scheduled"
     active = "active"
@@ -602,10 +467,6 @@ class BattleStatus(str, enum.Enum):
 
 
 class FactionBattle(Base):
-    """
-    A time-windowed Faction Wars battle event.
-    All factions compete during the window; scores aggregate from validated rewards.
-    """
     __tablename__ = "faction_battles"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
@@ -624,7 +485,6 @@ class FactionBattle(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
 
-    # Relationships
     scores: Mapped[List["FactionBattleScore"]] = relationship(
         "FactionBattleScore", back_populates="battle", cascade="all, delete-orphan"
     )
@@ -636,16 +496,9 @@ class FactionBattle(Base):
         return f"<FactionBattle id={self.id} status={self.status} title={self.title!r}>"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FactionBattleScore
-# ─────────────────────────────────────────────────────────────────────────────
-
 class FactionBattleScore(Base):
-    """
-    Aggregated score per faction per battle.
-    Only incremented from validated (post-safeguard) rewards.
-    """
     __tablename__ = "faction_battle_scores"
+
     __table_args__ = (
         UniqueConstraint("battle_id", "faction_id", name="uq_battle_faction"),
     )
@@ -661,7 +514,6 @@ class FactionBattleScore(Base):
     total_coins: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     contributor_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    # Relationships
     battle: Mapped["FactionBattle"] = relationship("FactionBattle", back_populates="scores")
     faction: Mapped["Faction"] = relationship("Faction", foreign_keys=[faction_id])
 
@@ -672,16 +524,9 @@ class FactionBattleScore(Base):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# FactionBattleContribution
-# ─────────────────────────────────────────────────────────────────────────────
-
 class FactionBattleContribution(Base):
-    """
-    Individual user contribution to a faction battle.
-    Tracks XP contributed through validated quiz rewards.
-    """
     __tablename__ = "faction_battle_contributions"
+
     __table_args__ = (
         UniqueConstraint("battle_id", "user_id", name="uq_battle_user"),
     )
@@ -699,7 +544,6 @@ class FactionBattleContribution(Base):
     xp_contributed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     questions_answered: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    # Relationships
     battle: Mapped["FactionBattle"] = relationship("FactionBattle", back_populates="contributions")
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
 

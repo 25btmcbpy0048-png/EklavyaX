@@ -1,4 +1,5 @@
 ###🌟 EklavyaX
+link- https://eklavya-x.vercel.app/
 
 **EklavyaX** is a gamified AI learning platform for students and teachers, combining AI tutoring, virtual labs, assignments, progress tracking, and rewards.
 

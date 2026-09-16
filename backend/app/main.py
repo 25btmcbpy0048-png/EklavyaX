@@ -253,6 +253,7 @@ cors_origins = list(configured_origins)
 allowed_frontends = [
     "https://eklavyax.vercel.app",
     "https://eklavya-x.vercel.app",
+    "https://eklavya-x-xi.vercel.app",
 ]
 
 for origin in allowed_frontends:

@@ -14,7 +14,7 @@ const API_BASE =
   window.EKLAVYAX_API_BASE ||
   localStorage.getItem("eklavya_api_base") ||
   (window.location.hostname.includes("vercel.app")
-    ? "https://eklavyax.onrender.com"
+    ? "https://eklavyax-wh3z.onrender.com"
     : (window.location.port && window.location.port !== "8000" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
        ? `http://${window.location.hostname}:8000`
        : ""));
